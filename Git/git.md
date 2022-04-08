@@ -160,3 +160,78 @@
     $ git commit //上次提交
     $ git add . //对忘记的文件进行add操作
     $ git commit --amend //覆盖上次的提交
+    ```
+    * 如果修改已经被staged到staging area，如果想要将staged的修改变为unstaged，可以调用git reset命令
+      ```shell
+      # 通过git reset命令，可以取消staging area中对特定文件的修改，将
+      #   staging area中特定文件同步到与commit提交记录相同
+      #   但是工作区中的文件内容并不会被修改，除非指定--hard选项
+      $ git reset HEAD filename
+      ```
+    * 如果想要放弃对文件的修改（未被staged），可以调用git checkout -- filename来文件内容进行恢复操作，此时，如果staging area中有对文件的修改，则被还原到staged的版本，如果staging area中没有对文件的修改，将被还原到最后一次提交的版本
+    ```shell
+    # git checkout -- filename 对工作区中的内容进行恢复
+    #   该命令比较危险，可能会造成工作区中修改内容的丢失
+    $ git checkout -- filename
+    ```
+    * 将已经被staged的修改unstaged，可以使用git restore --staged
+      ```shell
+      $ git restore --staged filename
+      ```
+    * 将对文件的修改恢复到上一次提交或是staged的状态
+      ```shell
+      # 将working directory中文件内容恢复到上一次提交或staged状态
+      #   等同于git checkout -- filename
+      $ git restore filename
+      ```
+  * ### git远程操作
+    * 可以通过git remote 命令来查看远程仓库，并且用-v选项显示远程仓库的url
+      ```shell
+      # git remote -v显示本仓库中远程仓库的shortname和url地址
+      $ git remote -v
+      ```
+    * 可以通过git remote add命令来添加远程仓库的信息
+      ```shell
+      # 添加远程仓库信息
+      $ git remote add <shortname> <url>
+      ```
+    * 从远程仓库中获取数据，可以调用git fetch命令
+      * git fetch命令会从远程仓库拉取数据到本地，在执行完此操作后，本地会拥有远程仓库的所有分支引用
+      * 在调用完git clone <url>后，名为origin的仓库将会自动设置为url地址，用git fetch origin命令会自动拉取被提交到远程仓库的工作
+      * git fetch只是将信息从远程仓库中下载下来，但是并不会自动的执行merge操作，也不会修改你working directory中的任何内容。你需要在之后手动的merge拉取数据
+      ```shell
+      # git fetch <remote>
+      $ git fetch <remote>
+      ```
+    * git pull会将远程的分支拉取到本地，并且将会自动的把本地当前分支和远程分支合并
+      * git clone在克隆远程仓库时，会自动的将本地的master分支设置为追踪远程仓库的默认分支。
+    * git push将会将本地分支推送到远程仓库
+      ```shell
+      # git push会将本地分支推送到与本地分支关联的远程分支
+      # 只有当对远程仓库具有写权限时，推送才能成功
+      # 如果在fetch和push之间，其他用户对远程仓库执行了push操作，则当前push
+      #   操作会被拒绝，你必须fetch它们的push并且将他们的push和本地相融合，
+      #   然后再push，此时才能成功
+      $ git push <remote> <branch>
+    * 可以调用git remote show <remote repository>来显示remote的详细信息
+      ```shell
+      # git remote show <short name>会显示如下信息
+      #   * 会显示在特定分支下调用git push时，本地分支会被push到哪个远程分支
+      #   * 会显示在本地仓库还不存在的远程分支
+      #   * 会显示本地仓库还存在，但是在远程仓库中被移除的分支
+      #   * 会显示在调用git pull时哪些分支会自动的和远程分支相merge
+      $ git remote show <shortname>
+      ```
+    * 可以调用git remote rename old-name new-name来对远程仓库进行重命名
+      ```shell
+      # 对远程仓库进行重命名
+      $ git remote rename <old-name> <new-name>
+      ```
+    * 可以通过git remote rm命令来删除远程仓库
+      ```shell
+      # 删除远程仓库
+      #   * 在删除远程仓库之后，和远程仓库相关联的信息（例如tracked remote 
+      #       branch、远程仓库相关设置）都会被删除
+      $ git remote rm <shortname>
+      ```
+      
