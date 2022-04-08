@@ -87,3 +87,76 @@
         #       将提交的文件修改从staging area中移除
         ```
     * git mv：可以通过git mv来对文件进行重命名
+  * ### 查看git的提交记录
+    * 通过git log可以查看该git仓库的提交记录，记录按照时间顺序逆序排列。
+      ```shell
+      # git log 按照时间顺序逆序显示提交记录的顺序
+      $ git log
+      ```
+    * 通过为git log指定-p(--path)选项，可以显示输出每次commit相对于上次commit快照的区别
+      ```shell
+      # git log -p可以输出每次commit相对于上一次commit引入的变化
+      #   额外指定-n(例如-1，-2)可以指明输出的记录条数
+    * 为git log指定--stat选项查看文件修改的统计数据（例如有多少个文件被修改，每个文件插入或者删除多少行）
+      ```shell
+      # git log --stat 可以显示每个文件修改的统计信息
+      $ git log --stat
+      ```
+    * 为git log命令指定--pretty选项可以将git log的输出格式转为默认值以外的其他值
+      ```shell
+      # --pretty选项有一些预先定义好的值：
+      #   --pretty=oneline：
+      #     将每条记录的输出结果格式化为一行，适用于输出多个提交的情况
+      #   --pretty=short
+      #      显示格式和git log类似，但是不包含Date
+      #   --pretty=full
+      #       显示结果和git log类似，包含Author和Commit
+      #   --pretty=fuller
+      #       显示结果类似于git log，包含Author、Commit、
+      #             AuthorDate、CommitDate
+      $ git log --pretty=oneline
+    * 可以通过--pretty=format:"format string"来自定义输出的格式
+      ```shell
+      # 自定义输出格式
+      $ git log --pretty=format:"format string"
+      ```
+    * 通过--graph选项，可以输出ascii码组成的图片，显示分支合并的过程
+      ```shell
+      # 通过--graph选项显示分支合并过程
+      $ git log --graph
+      ```
+    * 输出某一时间范围内提交的修改，可以为git log指定--since和--until选项
+      ```shell
+      # --since选项支持多种格式，可以指定时间范围的起始日期
+      # --until选项指定时间范围的截至日期
+      $ git log --since="3 days ago 13:00" --until="today 13:00"
+      ```
+    * 可以通过--author、--committer、--grep来过滤提交记录
+      ```shell
+      # --author="author name":通过作者名称过滤提交记录
+      # --committer="committer name":通过提交者名称过滤提交记录
+      # --grep="grep pattern"
+      # --grep和--author都可以指定多个，输出记录满足任意一个即可
+      #     而可以通过--all-match可以指定只输出满足全部--grep的记录
+      $ git log --author="Rikako Wu" --grep="daily" --author="Kitahara Kazusa"
+    * 可以通过-S选项过滤修改了特定字符串的提交记录
+      ```shell
+      # 通过-S选项，可以过滤输出特定字符串的出现次数被改变的提交记录
+      #   例如：某次修改添加或删除、修改了某个字符串
+      #       则该字符串的出现次数在两次提交中会发生改变
+      $ git log -S "dart"
+      ```
+    * 通过-- filename输出指定文件或目录在提交中被改变的记录
+      ```shell
+      # 通过-- dirname/filename
+      #   只有当目录或文件在提交中被改变，才会输出该提交记录
+      $ git log -- filename/dirname
+      ```
+  * ### 在git中执行undo操作
+    * 修改最后一次提交：
+      * 如果在最后一次提交中忘记了git add某次修改就进行提交，那么为了对上次的提交进行修改，可以用git commit --amend来覆盖上次的提交
+    ```shell
+    # git commit --amend选项会弹出上次的提交并且将修改后的提交插入到仓库中
+    $ git commit //上次提交
+    $ git add . //对忘记的文件进行add操作
+    $ git commit --amend //覆盖上次的提交
