@@ -234,4 +234,81 @@
       #       branch、远程仓库相关设置）都会被删除
       $ git remote rm <shortname>
       ```
-      
+  * ### git标签操作
+    * 列出当前git仓库中的标记
+      * 可以通过git tag来列出标记，但是列出的标记会按字母的顺序显示
+        ```shell
+        # 按字母顺序列出标签
+        $ git tag
+        ```
+      * 按照给出的模式查找特定的标签
+        ```shell
+        # 通过为git tag指定-l选项查找特定的标签
+        $ git tag -l "v1.25.3*"
+        ```
+    * tag分类
+      * 带注释的标签：
+        * 对于带注释的标签，可以通过git tag -a version_name -m comment来指明
+        ```shell
+        # 创建带注释的标签
+        $ git tag -a <tag-name> -m <comment>
+        ```
+        * 如果要查看标签的信息，可以通过git show命令
+        ```shell
+        # 查看标签的内容
+        $ git show <tag-name>
+        ```
+      * 轻量级标签：
+        * 创建轻量级标签，不需要指定-a或者-m，只需要指明标签名就行
+          ```shell
+          # 创建轻量级标签
+          $ git tag <tag-name>
+          ```
+        * 对于轻量级标签，调用git show并不会显示标签附加的注释或是tagger和标记时间，而只会显示标记的commit信息
+          ```shell
+          # 显示轻量级标签信息
+          $ git show <tag-name>
+          ```
+    * 对git log中之前的提交添加tag
+      * 对于非当前commit，也可以用git tag来为其添加标签，只需指明commit的checksum值（可以是部分checksum值）
+      ```shell
+      # 为git log中之前的提交指明tag
+      $ git tag -a <tag-name> -m <comment> <commit-checksum>
+      ```
+    * 向远程库中push标签
+      * 默认情况下，git push命令并不会将标签推送到remote repository，需要显式的调用git push origin tag-name来推送标签
+      ```shell
+      # 将本地git仓库中的标签push到远程仓库
+      $ git push <shortname> <tag-name>
+      ```
+      * 将本地所有的标签都推送到远程仓库，可以指定--tags选项
+      ```shell
+      # 推送本地所有标签到远程仓库
+      #  * 如果指定了--tags选项，那么轻量级和带注释标签都会被推送到remote
+      #  * 如果指定的是--follow-tags选项，只会推送带注释标签
+      #  * 目前无法只推送轻量级标签
+      $ git push <shortname> --tags
+      ```
+    * 删除本地标签
+      * 如果想要删除本地仓库中的标签，可以通过git tag -d来实现
+      ```shell
+      # 删除本地仓库中的标签
+      $ git tag -d <tag-name>
+      ```
+      * 如果想要删除远程库中的标签，可以在git push中指定--delete选项
+      ```shell
+      # 删除远程库中的标签
+      $ git push <shortname> --delete <tag-name>
+      ```
+    * 通过调用git checkout tag-name，将会进入detached head state，此状态下可以执行提交操作，但是提交的操作是不可达的。如果想要对旧的版本进行修改，可以创建一个新的分支，并且在新的分支上对修改进行提交
+    ```shell
+    # 在新的分支上对旧的tag版本进行修改
+    $ git checkout -b <branch-name> <tag-name>
+    ```
+  * ### git 别名
+    * 可以通过git config --global来为git操作定义别名
+      ```shell
+      # 例如，想要为文件的恢复操作定义一个别名，可以调用如下命令
+      $ git config --global alias.unstage resotre --unstage
+      or
+      $ git config --global alias.unstage reset HEAD -- 
