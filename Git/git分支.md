@@ -208,3 +208,10 @@
     ```shell
     # 调用git rebase，可以将一个分支基于另一个分支的改变replay到第三分支上
     $ git rebase --onto target-branch base-branch topic-branch
+    ```
+  * 相较于merge，rebase操作可能会产生一些问题。
+    * 如一个分支已经被push到远程库，且被其他协作者pull并在此基础之上进行开发工作。那么，当分支的创建者在本地对分支进行rebase操作后，再用git push --force命令对远程分支的history进行覆盖时，那么其他协作者对更新之后的远程库进行pull操作，merge操作会破坏history
+  * rebase操作的守则：
+    * 一个rebase操作只能再本地库进行
+    * 一旦分支被push到远程库，就有可能被其他开发者clone并在此基础之上进行修改
+    * 如果分支被push到远程库后，那么就无法再进行rebase操作。因为rebase操作可能会破坏已有的history结构，如果用git push --force强制覆盖remote仓库的hsitory结构，那么其他开发者再次pull的时候就会进一步破坏history结构
