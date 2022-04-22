@@ -99,3 +99,9 @@
     * 可以通过pushNamed方法中的arguments参数向命名路由传递参数，传递的参数可以通过ModalRoute.of方法来获取，参数位于settings.arguments属性中
   * ### 为组件之间添加关联动画
     * 可以通过Hero组件为组件之间添加关联
+* 状态管理
+  * 如果一个widget中的状态不需要被其他widget所访问，那么可以在该widget内维护该状态
+  * 如果一个widget中的状态要与其他widget共享，可以使用provider包来实现
+    * 使用ChangeNotifierProvider，可以实现该节点下子节点之间的数据共享
+    * 可以通过ChangeNotifier来维护数据
+    * 使用Consumer来构建需要共享数据的节点
