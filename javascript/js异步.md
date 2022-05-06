@@ -83,4 +83,3 @@ function fetch_baidu() {
    - 默认情况下，整个window是单线程的，如果在同步执行一个长任务的情况下，其他所有的操作都会被阻塞，可以开启多线程来来实现并行执行
    - async/await和promise并不是通过多线程来实现异步操作的，通过async和await并不会创建一个新的线程，故而想要通过多线程提高性能，不能通过简单使用await/promise来实现
    - 为了保证线程安全，worker之间是隔离的，相互之间无法访问其他worker的变量，也无法访问dom（window、document、page），workder之间只能通过message交流
-   - 
