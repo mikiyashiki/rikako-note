@@ -462,6 +462,363 @@
 
     }
     ```
+- ## Golang中的方法
+  - 虽然Golang中并不像其他语言一样存在类（class），但是我们可以在Golang中为类型（type）定义方法
+  - 在Golang中，为类型（type）定义方法是定义一个接受特定类型参数的函数
+  ```Golang
+  type Point struct {
+    X,Y float64
+  }
+
+  // 为Point类型定义方法
+  func (p Point) Abs() float64 {
+    return math.Sqrt(p.X*p.X+p.Y*p.Y)
+  }
+
+  // 可以通过如下形式调用为类型定义的方法
+  p := Point{3,4}
+  fmt.Println(p.Abs())
+  ```
+  - 在Golang中，不仅可以为struct类型指定方法，而且可以为基本类型指定方法（例如type MyFloat float64后，为MyFloat类型指定方法）
+  - 在Golang中，只能够为位于同一个包中的类型指定方法，无法为位于其他包中的类型指定方法
+  ```Golang
+  type MyFloat float64
+
+  func (f MyFloat) fuck() {
+    fmt.Println("fucking float64")
+  }
+  ```
+  - 在Golang中，除了可以为类型指定方法外，还可以为类型的指针指定方法，此时特殊参数接受一个指针，可以通过指针修改传输类型的值
+  ```Golang
+  type Point struct {
+    X,Y float64
+  }
+
+  // 定义函数接受一个Point类型的指针
+  func (p *Point) modify() {
+    p.X *= 10
+    p.Y *= 10
+  }
+
+  // 调用时无需先将类型对象转化为指针，可以直接在对象上调用
+  p := Point{3,4}
+  p.modify()
+  // 调用后p为{30,40}
+
+  // 接受一个Point类型的拷贝
+  func (p Point) modifyCopy() {
+    p.X *= 10
+    p.Y *= 10
+  }
+
+  // 调用时传入函数的是对象的一个拷贝，不会修改原先对象的值
+  p := Point{3,4}
+  p.modifyCopy()
+  // 调用后仍然为{3,4}，修改的只是拷贝对象的值
+  ```
+  - 在Golang中，普通函数参数，必须向接受指针的形参中传入指针，向接受值的形参中传入值；但是在接受特殊参数的位置，如果想要接受的是值类型，那么传入指针和传入值均可；如果想在特殊参数位置接受指针类型，那么传入指针和传入值类型也均可
+  ```Golang
+  func (p *Point) modify() {
+    // func body
+  }
+
+  // 对于如下调用形式均可
+  p := Point{3,4}
   
+  p.modify() // 可行的调用方式
+  (&p).modify() //可行的调用方式
 
+  func (p Point) modifyCopy() {
+    // func
+  }
 
+  p := Point{3,4}
+  // 对接受值的特殊参数，下列调用方式也均可
+  p.modifyCopy() // 可行
+  (&p).modifyCopy() //可行
+  ```
+- ## Golang中的接口
+  - 在Golang中，interface中定义了一系列的方法签名，对于实现了interface中定义所有方法签名的类型，其都可以被赋值给interface类型
+  - 如果对一个类型的指针实现了interface接口，那么只能将该类型的指针赋值给interface变量，无法将该类型赋值给interface变量
+  ```Golang
+  type Car interface {
+    drive()
+  }
+
+  type AE86 struct {
+  }
+
+  // 为AE86类型的指针实现接口中drive方法
+  func (car *AE86) drive() {
+
+  }
+
+  // 此时，可以将*AE86类型赋值给Car，但是无法将AE86赋值给Car
+  var car Car
+  car = AE86{} // 失败
+  car = &AE86{} // 成功
+  ```
+  - 接口中保存的信息通常可以看做一个二元组：（具体的值，值的类型）
+  ```Golang
+  // 接口中保存的值如果是nil，但是其类型已经确定，那么接口的值就不为nil
+  var car Car
+  car=(*AE86)(nil)
+  fmt.Println(car==nil) // 输出为false
+  // 此时，虽然car仍然不指向具体的对象，但是其指向的类型确定为Car，故而其不为nil
+  // 在明确接口所指向的具体类型后，即使其值仍然为nil，但仍可以调用类型的具体方法
+  car.drive() // 调用成功
+  // 虽然car作为interface值时car==nil并不成立
+  // 但是调用car.drive()时，向drive函数中传递的*AE86类型的特殊参数仍然是nil
+  // 故而在func (car *AE86) drive() {}函数的实现中，需要显式定义空指针判断
+  func (car *AE86) drive() {
+    if car==nil {
+      // operations if nil...
+    }
+    // operations if non-nil...
+  }
+  ```
+  - 如果在接口中，及没有保存值，也没有保存类型，那么接口值为nil，在为nil的接口值上调用方法会引发空指针异常
+  ```Golang
+  var car Car
+  // 此时car接口中既没有值信息，又没有类型信息
+  fmt.Println(car==nil) // 输出结果为true
+
+  // 抛出空指针异常
+  // 由于car接口中并没有保存当前的值和类型信息
+  // 故而不知道应该对那个类型的drive方法进行调用
+  car.drvie()
+  ```
+  - 空接口类型interface{}
+    - 由于interface{}接口中没有定义任何方法，故而任何类型都实现了interface{}中所有的方法，interface{}接口可以持有仍和类型的值
+    - 通常，可以在函数形参中接受interface{}类型的变量，代表接受任何类型的值
+  ```Golang
+  // 定义新的类型any，其相当于interface{}，可接受任何类型的值
+  type any interface{}
+  ```
+   - Golang中的类型断言
+     - 在Golang中，接口可以在运行时持有不同类型的值，类似与面向对象中的多态
+     - 通过类型断言，可以在运行时动态的判断interface持有值的类型
+  ```Golang
+  // 运行时动态判断接口中持有值的类型
+  var car Car=(*AE86)(nil)
+  // 断言判断
+  // 1.如果interface中持有的值不是指定类型，抛出panic
+  val := car.(*FD) // 此时会抛出panic，终止程序
+
+  // 2.判断interface中持有的值是否是制定类型，如果不是，不抛出panic继续运行
+  val,ok := car.(*FD)
+  // 如果是，ok为true，如果不是，ok为false
+  if ok {
+    // val为持有的值
+  } else {
+    // val为该*FD类型的默认值，指针类型默认值为nil
+  }
+  ```
+  - Golang中根据接口持有类型来进行switch
+  ```Golang
+  // 进行type switch
+  var car Car=&AE86{}
+
+  switch v := car.(type) {
+    case *AE86:
+      // 如果car接口持有的类型是*AE86，则v的类型是*AE86，值为car持有的值
+    case *FD:
+      // 如果car接口持有的类型是*FD，那么v的类型是*FD，值为car持有的值
+    default：
+      // 如果car接口持有的类型不是上述类型，那么v的类型仍然是接口类型，值为car持有的值
+  }
+  ```
+  - Golang中的Stringer接口
+    - Golang中通常通过Stringer中的String()方法来返回一个描述自身的字符串，而fmt包在打印信息时通常通过调用该接口的String方法来实现的
+  ```Golang
+  type Waifu struct{
+    firstName,lastName string
+  }
+
+  func (waifu Waifu) String() string {
+    return "my waifu: "+waifu.firstName+" "+waifu.lastName
+  }
+
+  fmt.Println(Waifu{"touma","kazusa"})
+  ```
+- ## Golang中的错误处理
+  - Golang中，通常在方法执行时，都会返回一个error值，调用方通过检查error返回值是否为nil来判断执行是否出错
+  ```Golang
+  i,err := strconv.Atoi("1")
+  if err==nil {
+		// 转换成功
+		fmt.Println(i)
+	} else {
+    // 转换失败
+		fmt.Println(err)
+	}
+  ```
+  - 在Golang中，通常通过error接口来获取失败的错误信息
+  ```Golang
+  type error interface {
+    Error() string
+  }
+  ```
+- ## Golang中的字节流
+  - Golang中，通过io.Reader接口来完成对文件的读取
+  ```Golang
+  type Reader interface {
+    // Reader接口中含有一个read方法
+    // read方法接受一个字节slice作为参数
+    // 并且，其会将读取的字节填充到slice中
+    // read方法的返回值为n和err
+    // n为读取的字节数
+    // err为返回的异常信息，如果err返回的值是io.EOF，则代表读取到字节流的末尾
+    Read(b []byte) (n int,err error)
+  }
+  ```
+- ## Golang中的泛型
+  - Golang中，支持泛型函数，可以为函数指定一个类型参数，指定函数接受参数的类型
+  ```Golang
+  // 定义泛型参数，添加对类型的约束条件，要求其可以比较
+  func firstIndex[T comparable](arr []T,t T) int {
+    for i,v := range arr {
+      if v==t {
+        return i
+      }
+    }
+    return -1
+  }
+
+  fmt.Println(firstIndex[int]([]int{1,3,2,5,4},5))// 输出3
+  ```
+  - Golang中，除了支持泛型函数，还支持泛型struct
+  ```Golang
+  // 通过泛型struct定义单链表节点
+  type Node[T any] struct {
+    val T
+    next *Node[T]
+  }
+  ```
+- ## Golang中的并发
+  - Goroutine：
+    - Goroutine是由Go的运行时环境所管理的轻量级线程
+      - Goroutine运行在相同的地址空间中，故而在Goroutinue在对地址中资源进行访问时，需要对其进行同步
+    - Goroutine的开启：
+    ```Golang
+    // 开启一个新的Goroutine
+    // 其中，f、x、y、z的计算发生在当前的Goroutine中
+    //  但是，f(x,y,z)的执行发生在新创建的Goroutine中
+    go f(x,y,z)
+    ```
+  - Channel：
+    - Channel是一个类型化的管道，通过<-操作符，可以从Channel中接收数据或向Channel发送数据
+    - Channel的创建可以通过make函数来实现
+    ```Golang
+    // 创建channel
+    ch := make(chan int)
+
+    // 与channel的数据传输
+    ch<-v // 将v中的数据发送到channel管道
+    v := <-ch // 从channel中读取数据，并且将其赋值给v
+    ```
+    - Channel中发送和接收的同步
+      - 默认情况下(没有缓冲时），向channel发送数据时，需要确认接受数据的一方已经准备好
+      - 在从channel接受数据时，需要确认发送数据的一端已经准备好
+      - 通过上述条件，可以让Goroutine在没有显式锁和条件变量的情况下完成同步
+    - 在创建channel时，可以为channel指定一个缓冲区大小
+      - 当缓冲区中的数据满之后，向缓冲区填充数据的Goroutine将会被阻塞
+      - 当缓冲区中的数据为空时，从缓冲区读取数据的Goroutine将会被阻塞
+    ```Golang
+    // 如果在同一个Goroutine中，多次向channel中加入数据导致缓冲区被填满
+    // 并且没有其他Goroutine来取出数据，那么当前添加数据的Goroutine将会
+    // 被一直阻塞，从而产生死锁
+    func main {
+      ch := make(chan int,2)
+      ch <- 1
+      ch <- 2
+      ch <- 3 // 此时缓冲区已满，会阻塞当前Golang，造成死锁
+    }
+    ```
+    - Channel的关闭和range迭代
+      - Channel的发送方可以调用close函数对channel进行关闭
+      - 向已经关闭的channel发送数据，会抛出panic
+      - 从已经关闭的channel中读取数据时，第二个参数ok返回为false
+      - 在对panic进行读取操作时，也可以用第二个参数来读取channel是否被关闭
+    ```Golang
+    ch := make(chan int,2)
+    ch <- 1
+    ch <- 2
+
+    close(ch)
+
+    // 可以通过读取channel时的第二个参数来读取channel是否被关闭
+    i,ok := <-ch
+    // 此时，ok代表是否ch已经关闭，i代表读取的值
+    fmt.Println(i,ok) // 1 true
+    i,ok = <-ch
+    fmt.Println(i,ok) // 2 true
+    i,ok =<-ch
+    fmt.Println(i,ok) // 0 false
+
+    // 可以对channel中的所有数据进行range循环
+    // 该循环会遍历channel中所有元素，直到channel被关闭
+    for i := range ch {
+      fmt.Println(i)
+    }
+    ```
+  - Golang中的select块
+    - Golang中select块可含有多个被阻塞的通信操作，当任意一个通信操作结束时，select结束阻塞并且执行其通信操作。
+    - 如果在select块中有多个通信操作都处于就绪状态，其随机选择一个执行
+    - 如果在select块中存在default，则在其他case均未处于就绪状态时default条件下被执行
+  ```Golang
+  select {
+    case v:=<-ch:
+      fmt.Println(v)
+    case <-quit
+      return
+    default:
+      fmt.Println("waiting...")
+      time.Sleep(time.Second * 1)
+  }
+  ```
+ - Golang中的互斥锁
+   - Golang中为了保证临界区共享资源的安全，可以通过sync.Mutex来保证多个Goroutine访问临界资源时的并发安全
+   - Mutex有Lock和Unlock方法，用于加锁和释放锁
+   - 为了保证解锁的方法一定被执行，可以指定Unlock方法为defer，此时即使发生了panic，也会保证defer的Unlock方法一定被执行，锁资源被释放
+    ```Golang
+    mut := sync.Mutex{}
+    cur := 0
+    go func() {
+      for cur<9 {
+        mut.Lock()
+        if cur<9 && cur%3 == 0 {
+          fmt.Println("Goroutine 1")
+          cur++
+        }
+        mut.Unlock()
+      }
+    }()
+    go func() {
+      for cur<9 {
+        mut.Lock()
+        if cur<9 && cur%3 == 1 {
+          fmt.Println("Goroutine 2")
+          cur++
+        }
+        mut.Unlock()
+      }
+    }()
+    go func() {
+      for cur<9 {
+        mut.Lock()
+        if cur<9 && cur%3 == 2 {
+          fmt.Println("Goroutine 3")
+          cur++
+        }
+        mut.Unlock()
+      }
+    }()
+    // 输出会显示如下
+    // 1
+    // 2
+    // 3
+    // 1
+    // 2
+    // 3
+    ```
