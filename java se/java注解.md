@@ -33,6 +33,15 @@
         @SuppressWarnings({"unchecked","deprecation"}
         )
         ```
+  * @Retention:
+    * 用来标注在注解上，用来表明该注解如何被存储
+    * 该注解有如下值：
+      * RetentionPolicy.SOURCE:
+        * 该注解被保存在源码层面，并且会被编译器所忽视
+      * Retention.CLASS:
+        * 该注解在编译时被编译器所保存，但是会被jvm忽略
+      * Retention.RUNTIME:
+        * 该注解被jvm保存，并且在运行时可以被使用
   * @Target:
     * 该注解标注在注解上，指明注解应该应用于哪些位置
     * 在使用时，应该为@Target的value指定如下值：
