@@ -339,7 +339,6 @@
     </tr>
   </table>
   ```
-  
   - colgroup和col
     - &lt;colgroup&gt;：col的容器
     - &lt;col&gt;：col通常用来指定表格中列的样式
@@ -359,7 +358,99 @@
       </tr>
     </table>
     ```
-
+  - caption：添加描述性文本，描述性文本位于表格的正上方
+  ```html
+  <table>
+    <caption>Waifu Table</caption>
+    <tr>
+      <th>Name</th>
+      <th>Age</th>
+    </tr>
+    <tr>
+      <td>Touma</td>
+      <td>17</td>
+    </tr>
+  </table>
+  ```
+  - thead,tbody,tfoot
+    - thead通常用来标注表头的行，即&lt;th&gt;标签所在的行
+    - tfoot通常用来标注表尾信息，比如对上述内容之和的SUM统计
+    - tbody通常用来标注表格除thead和tfoot之外的其他信息
+    ```html
+    <table>
+      <colgroup>
+        <col>
+        <col style="background-color:gray">
+      </colgroup>
+      <caption>Cost Summary</caption>
+      <thead>
+        <tr>
+          <th>Term 1</th>
+          <th>Term 2</th>
+        </tr>
+      </thead>
+      <tfoot style="font-weight:bold;font-size:1.2em;color:cyan">
+        <td>3</td>
+        <td>5</td>
+      </tfoot>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>3</td>
+        </tr>
+      </tbody>
+    </table>
+    ```
+  - 可以在td中嵌套table表格
+    ```html
+    <table>
+      <thead>
+        <tr>
+          <th colspan="2" style="text-align:center">Waifu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <table>
+              <tr>
+                <th>Name</th>
+                <th>Age</th>
+              </tr>
+              <tr>
+                <td>Touma</td>
+                <td>17</td>
+              </tr>
+            </table>
+          </td>
+          <td>
+            <table>
+              <tr>
+                <th>City</th>
+                <th>Job</th>
+              </tr>
+              <tr>
+                <td>Tokyo</td>
+                <td>Pianoist</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    ```
+  - scope属性：在th标签中，具有scope属性，可以指明该th对应的是行标题、列标题、行组标题、列组标题，scope标签对应如下值：
+    - row
+    - col
+    - rowgroup
+    - colgroup
+- Web表单
+  - 
+      
 
       
 
