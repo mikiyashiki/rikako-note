@@ -6,7 +6,7 @@
     - 在html中，< > ' " 都是特殊的符号，其都是html语法的一部分，故而在文本中如果存在这些特殊字符，可以通过特殊的引用来表示该特殊字符
     - 特殊的用来表示该类字符的表达式以&开头，以；结尾，具体如下
     ```shell
-    <   可以用  &lt; (less than)
+    <div   可以用  &lt; (less than)
     >   可以用  &gt; (greater than)
     "   可以用  &quot; 
     '   可以用 &apos;
@@ -449,7 +449,284 @@
     - rowgroup
     - colgroup
 - Web表单
-  - 
+  - &lt;form&gt;标签
+    - form标签一般会有两个属性，action和method
+      - action：用来指定表单数据提交的目标url
+      - method：用来指定提交数据用的方法，一般是get或post
+    ```html
+    <form action="/user/login" method="post">
+      <input type="text" name="username" value=""
+          placeholder="enter your username">
+      <input type="password" name="password" value="">
+      <input type="submit" value="Submit">
+    </form>
+    ```
+  - label、input和textarea
+    - &lt;label&gt;元素用来表示标签
+    - &lt;input&gt;用来获取用户向表单输入的值
+    - &lt;textarea&gt;用来获取用户输入的文本，可输入多行
+    ```html
+    <form action="/submit" method="post">
+      <input type="text" name="useranme" value="" 
+        placeholder="enter your password...">
+      <input type="email" name="email" value=""
+        placeholder="enter your email account...">
+      <textarea name="msg" placeholder="enter your message..."
+        cols="30" rows="20">
+        enter your message...
+      </textarea>
+    </form>
+    ```
+  - 提交表单
+      - 提交表单按钮可通过如下两种按钮实现
+        - &lt;input type="submit"&gt;
+        - &lt;button type="submit"&gt;
+      - 上述两种方法都能提交表单，但是&lt;input&gt;元素中按钮内容只能通过向text属性中传入一个文本，但是&lt;button&gt;元素中可以嵌套更多的内容
+      ```html
+      <form action="/submit" method="post">
+        <div>
+          <label for="name_input">Name</label>
+          <input id="name_input" type="text" name="name"
+              placeholder="enter your name...">
+          <label for="email_input">Email</label>
+          <input id="email_input" type="email" name="email"
+              placeholder="enter your email...">
+        </div>
+        <div>
+          <input type="submit" value="Submit">
+          <button type="Submit">
+            <em>Submit</em>
+          </button>
+        </div>
+      </form>
+      ```
+   - 表单结构
+     - &lt;filedset&gt;和&lt;legend&gt;
+       - &lt;filedset&gt;通常用于将表单中用于同意目的的一系列控件整合在一起
+       - &lt;lengend&gt;通常被视为filedset中所有label的一部分
+    ```html
+    <form>
+      <filedset>
+        <legend>Pen Lip Bold<legned>
+        <p>
+          <input type="radio" id="ef" name="bold" value="ef">
+          <label for="ef">ef</label>
+        </p>
+        <p>
+          <input type="radio" id="f" name="bold" value="f">
+          <label for="f">f</label>
+        </p>
+        <p>
+          <input type="radio" id="m" name="bold" value="m">
+          <label for="m">m</label>
+        </p>
+      </filedset>
+    </form>
+    ```
+  - 表单元素
+    - &lt;input&gt;
+      - 该元素包含纯文本，不可以调整格式等
+      - 该元素具有如下属性：
+        - readonly：用户无法修改该input元素的内容，但是input内容会随着表单的提交被发送
+        - disabled：用户同样无法修改input元素的内容，并且input元素的内容也无法随着表单的提交而提交
+        - placeholder：占位符，用来描述该input元素中应该输入的信息
+        - size：该input text的物理宽度
+        - maxlength：用户可以输入到该input text中的字符数上限
+      - input标签的种类
+        - text：输入纯文本
+        - password：password并不会对input中输入内容加以限制，但是其会隐藏用户输入的内容
+        - hidden：type为hidden的元素，在表单中是不可见的，但是内容会在表单提交时一同被提交
+        - Checkable组件
+          - Checkable组件和其他组件不同，只有当该组件被选中时，才会在表单提交时被发送，如果该组件没有被选中，那么该组件的值并不会被发送，即使该组件的name属性并不为空，如果该组件被选中，而且没有value属性，那么value属性默认为"on"；其他组件只要存在name属性，都会被发送
+          - checked属性：checked属性可以用来控制该Checkable组件是否默认被选中
+          ```html
+          <input type="checkbox" name="married" value="yes"
+              checked id="cb_married">
+          <label for="cb_married">married</label>
+          ```
+          - 类型：
+            - checkbox
+            - radio：一组按钮，具有相同的name属性，一组中只能选中一个按钮，被选中的name/value键值对会被发送给服务端
+        - 按钮组件
+          - &lt;input&gt;组件可以指定type为如下值之一：
+            - submit：提交表单
+            - reset：重置表单中所有组件值为其默认值
+            - button：没有自动提交的效果，但是可以通过js来指定回调
+          - 通过为&lt;button&gt;元素的type属性赋值也可以指定button类型为如上三个值之一。在没有为button的type属性指定值或指定无效值时，默认情况下type属性值为submit。
+          - image组件：
+            - 可以为type属性赋值为image，将会显示一个图像，点击图像可以执行提交表单的操作
+            - 当点击image按钮执行提交操作时，点击按钮位置相对于按钮左上角的坐标会被添加到提交表单信息中，分别为${nameAttr.x}=xxx和${nameAttr.y}=yyy
+            - 即使image组件没有name属性，其x和y坐标也会被提交，提交的name就为x和y
+          ```html
+          <input type="image" src="/imageSrc" alt="map"
+            name="map" width="300" height="120">
+          <!-- 
+            点击按钮之后，点击位置相对图片左上角的相对坐标将会被提交，以如下形式：
+              map.x=xxx&map.y=yyy
+           -->
+        - 文件传输组件
+          - 可以将type属性指定为file，此时可通过file picker来选择文件上传
+          - 相关属性：
+            - accept：约束选择文件的种类，如image/*
+            - multiple：如果想要选择多个文件，可以指定multiple属性（可以通过ctrl+left_click来完成多选）
+          ```html
+          <input type="file" name="file" accept="image/*"
+              multiple>
+          ```
+      - 组件中的公共属性：
+        - autofocus：自动获得焦点
+          - 在一个document中，可设置表单中的一个组件自动获得焦点，如果一个document中有多个组件设置了autofocus，那么第一个设置autofocus的组件获得焦点
+        ```html
+        <input type="text" autofocus name="name" value="">
+        ```
+        - form:设置该组件关联的form表单
+          - 组件可以被放置在表单外，表单外的组件和表单通过form属性想关联，form属性的值为form的id，当表单被提交时，表单外数据也被包含
+        ```html
+        <form id="form">
+        </form>
+        <input type="hidden" name="name" value="hidden_shiro" form="form">
+        ```
+  - html5新引入的input类型
+    - email
+      - 接受email格式的输入文本，在用户点击表单submit按钮时，会验证是否文本符合email格式，不符合会弹出警告
+      - 可以通过指定multiple属性来允许接受多个email地址，多个email地址之间通过逗号分隔
+    ```html
+    <input type="email" name="email" value="" multiple>
+    ```
+    - search
+      - 搜索框，用于提供特定样式的搜索框
+    - tel
+      - 接受电话号码，由于全世界不同地区有各种各样的电话号码形式，故而对输入文本的格式没有约束，输入文本中可以包含字母
+    - url
+      - 接受url，当输入文本缺乏协议名（如http、ftp）或者格式不正确时，浏览器会发出警告
+    - number：
+      - 接受一个浮点数格式的文本，可以设置最小值、最大值和文本
+      - 在step属性没有指定时，step属性的默认值为1，因而该input只接受整数；要想让该input接受浮点数，可以设置step属性为any，此时可以接受任何浮点数
+    ```html
+    <input type="number" min="0" max="100" step="1"
+      name="volume" value="1">
+    ```
+    - range
+      - range可以提供一个滑动条来供用户选择数字
+      ```html
+      <input type="range" min="0" max="1" step="0.01">
+      ``` 
+    - 日期
+      - datetime-local
+        - 选择时间，无需指定时区信息，采用本地时区，包含年、月、日、时间
+      ```html
+      <input type="datetime-local" name="time">
+      ```
+      - month
+        - 选择一个月份，包含年和月信息
+      ```html
+      <input type="month" name="month">
+      ```
+      - time
+        - 选择一个时间
+      ```html
+      <input type="time" name="time">
+      ```
+      - week
+        - 选择一个星期
+      ```html
+      <input type="week" name="week">
+      ```
+      - 上述属性还可以包含min，max，step等信息，在不包含时间的日期组件中，可以通过设置step属性来设置步长
+    - color：
+      - color控件提供了用来选取颜色的功能
+      - 选取颜色的value值一直是hex形式，6位16进制数
+      ```html
+      <input type="color" name="color">
+      ```
+  - 其他表单控件类型
+    - &lt;textarea&gt;
+      - textarea标签可以用于输入多行文本，并且输入文本为纯文本的形式
+      - textarea的主要属性：
+        - cols：用于指定宽度，单位为字符平均宽度，默认为20
+        - rows：用于指定高度，默认情况下为2
+        - wrap：指定textarea的换行方式
+          - soft：在渲染时，文本超过textarea的最大宽度时会换行，但是提交表单时并不会将换行符添加到内容中
+          - hard：渲染时，文本超过textarea的最大宽度会黄行，并且提交表单时也会将换行符添加到内容中（在指定wrap为hard时必须显式指定cols的值）
+          - off：不换行，而是为textarea提供水平滚动条
+      - css resize属性：
+        - 可以通过css中的resize属性来控制textarea的横向和纵向拉伸
+        - resize属性可赋予的值：
+          - both：横向纵向均可
+          - horizontial：可横向拉伸
+          - veritical：可纵向拉伸
+          - none：不可以resize
+    - 下拉框
+      - 下拉框可以通过&lt;select&gt;标签来表示
+      - option标签用来表示select标签的内容
+        - option标签的selected属性用来设置默认选中的值
+      ```html
+      <select name="name">
+        <option selected>Tifa</option>
+        <option>Kazusa</option>
+        <option>Alice</option>
+      </select>
+      ```
+      - &lt;optgroup&gt;标签可以为option进行分组,optgroup标签的label属性可以为同一option组的标记设置描述
+      - 若option标签具有value属性，那么在表单被提交时，键值对中的value是value属性的值，若option不具有value属性，option标签内包含的内容则会随着表单提交而发送
+      - select标签支持multiple属性，可以选中多个option
+      - select标签支持size属性，可以设置下拉框同时可看见多少个option
+      ```html
+      <select name="name">
+        <optgroup label="male">
+          <option value="h">Haruki</option>
+          <option selected value="t">Takumi</option>
+        </optgroup>
+        <optgroup label="female">
+          <option value="k">Kazusa</option>
+          <option value="a">Asuna</option>
+        </optgroup>
+      </select>
+      ```
+    - 带自动补全的控件
+      - &lt;datalist&gt;标签可以为input元素提供自动补全的数据，当用户在input中输入数据时，可以在datalist中匹配数据并且给用户以补全提示
+      ```html
+      <input type="select" list="list_srh" name="search">
+      <datalist id="list_srh">
+        <option>Touma Kazusa</option>
+        <option>Kitahara Haruki</option>
+        <option>Rikako Natsumi</option>
+        <option>Ogiso Setsuna</option>
+      </datalist>
+      ```
+      - 如果为type=“range”的input标签指定datalist，那么datalist对应的值上都会有一个小刻度
+    - 进度条
+      - 进度条可以通过&lt;progress&gt;标签来展示
+      ```html
+      <progress max="100" value="60"></progress>
+      ```
+    - &lt;meter&gt;
+      - meter元素长常用来表示磁盘的占用量等，并且用green、yellow、red等颜色来表明当前状态
+      - meter元素的主要属性
+        - min：最小值
+        - max：最大值
+        - low
+        - high
+        - optimum：最佳值
+      - optimum值位置：
+        - 位于min和low之间时，(low,hight)为avg，[hight,max]为wrost
+        - 位于low和high之间时，[min,low]和[high,max]都为avg
+        - 位于high和max之间时，[min,low]为wrost，(low,high)为avg
+      - 颜色：
+        - preferred为绿色
+        - wrost为红色
+        - avg为黄色
+      ```html
+      <meter min="0" max="256" low="100" high="200" optimum="50"
+        value="255">255GB/256GB</meter>
+      ```
+
+
+
+
+
+
+
       
 
       
