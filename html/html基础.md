@@ -448,7 +448,7 @@
     - col
     - rowgroup
     - colgroup
-- Web表单
+- ## Web表单
   - &lt;form&gt;标签
     - form标签一般会有两个属性，action和method
       - action：用来指定表单数据提交的目标url
@@ -720,14 +720,78 @@
       <meter min="0" max="256" low="100" high="200" optimum="50"
         value="255">255GB/256GB</meter>
       ```
+  - 表单的伪类
+    - :required和:optional
+      - 关于&lt;input&gt;、&lt;select&gt;、&lt;textarea&gt;等标签的required属性：
+        - 一旦上述标签指定了required属性，那么在提交表单时，上述标签必须已经手动填写了相关信息或是通过value睡醒那个有默认值，不能为空
+        - 可以通过:optional和:required伪类来为不同的input组件采用不同样式
+        - checkbox，如果该checkbox未被选中则表单提交时不会被添加到数据中，若checkbox被指定为required，那么在提交表单时该checkbox必须被勾选
+      ```html
+      <style rel="stylesheet">
+        input:required {
+          background-color:red;
+        }
 
+        input:required {
+          background-color:gray;
+        }
+      </style> 
+      <input type="text" required name="text_required">
+      <input type="text" name="text_unrequired">
+      ```
+    - :invalid和:valid
+      - :invalid和:valid判断通常如下：
+        - 如果input元素没有约束，那么都是valid的
+        - 如果input元素标记为required，但是值为空，那么为invalid
+        - 如果input元素type为email或者number但是不满足条件，那么也为invalid
+    - :in-range和:out-of-range
+      - 对于input类型为数字的输入框，如果输入位于min和max属性之外，那么该input元素会匹配:out-of-range伪类，否则会匹配:in-range伪类
+      - 匹配:in-range的元素同样会匹配:valid，匹配:out-of-range的伪类同样会匹配:invalid，但是:in-range/:out-of-range指定的范围比:valid/:invalid更精确，可以用来指定更为复杂的样式
+    - :enabled和:disabled
+      - :enabled和:disabled判断如下
+      - 可以通过disabled属性来指定组件是否为enabled或者disabled
+    - :read-only和:read-write
+      - 类似与:enabled和:disabled,:read-only和:read-write通常可以用来选择那些是否可以编辑的组件，但是readonly标记的组件内容会随着表单被提交，而disabled组件标记的内容则不会随着表单提交
+      - 可以通过readonly属性来标记input是否可以被修改
+    - 针对radio和checkbox组件的伪类
+      - :checked、:default、:indeterminate
+      - :checked
+        - :checked伪类用来选择该input是否被选中
+      - ：default
+        - ：default伪类用来选中那些在导入页面时默认被选中的input组件
+        - 即使后来该组件被取消选中状态，:default依然会选中该组件
+      - ：indeterminate
+        - ：indeterminate用来选中那些没有确定状态的组件，既不是选中状态，也不是非选中状态
+        - :indeterminate状态如下：
+          - 多个具有相同name属性的radio，但是没有选中任何一个
+          - 通过js将checkbox的indeterminate属性设置为true
+          - progress元素没有value属性
+  - 浏览器端的表单数据验证
+    - 对于表单控件，有如下两种方式进行数据验证
+      - html5组件内置的验证方式
+      - 通过js来进行自定义的验证
+    - 内置验证方式
+      - 内置验证方式通常通过html5表单控件的属性来完成对输入数据的约束，该方法验证客户端数据并不需要通过js语言即可完成
+      - 内置属性如下：
+        - required：设置该空间内容是否需要填充且不为空
+        - maxlength/minlength：指定输入字符串数据的最长长度和最短长度约束
+        - min/max：对于数值类型，指定输入值的最大/最小值
+        - type：指定输入值是否为email类型、number类型或是其他类型
+        - pattern：通过正则表达式来指定输入数据的类型
+      ```html
+      <!-- 通过正则表达式验证input -->
+      <style>
+        input:valid {
+          border: 1px solid black;
+        }
+        input:invalid {
+          border: 2px solid red;
+        }
+      </style>
 
-
-
-
-
-
-      
+      <input type="text" required 
+          pattern="^[Tt]ouma [Kk]azusa$">
+      ```
 
       
 
