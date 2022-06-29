@@ -178,3 +178,6 @@
     - 作为一种回退机制，当bean的qualifier未被定义时，bean的name属性将会被作为其qualifier，autowired时会根据@Qualifier注解中指定的值匹配具有相同name的bean对象
     - 若想根据bean的name进行匹配，无需@Qualifier注解，只需要将注入点的name(filed的变量名，标注为@Autowired函数的形参名)和bean的name进行比较，如果相同则匹配成功，否则匹配失败
     - @Autowired同样支持自身引用的注入，但是自身引用的注入只能作为一种fallback机制。如果当前IOC容器中存在其他的同类型对象，那么其他对象会被优先注入，对象自己并不会参与候选的对象注入。但是，如果IOC中并不存在其他同类型对象，那么自身对象将会被作为引用注入。
+  - @Resource
+    - @Resource标签类似于@Autowired标签，但是@Resource具有一个name属性用来匹配bean对象的name属性
+    - @Resource标签首先会对具有相同name的bean对象，如果没有匹配到具有相同name的bean对象，才会fallback到类型匹配

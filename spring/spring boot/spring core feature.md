@@ -86,6 +86,24 @@
       private String relationship;
   }
   ```
+  * @ConfigruationProperties添加绑定后为绑定了环境变量的类注册bean对象到容器内中的方法
+    * 通过@ConfigurationPropertiesScan注解来定义扫描路径
+    * 通过@EnableConfigurationProperties来显式制定注册bean对象的属性类
+  ```java
+  // 指定想要注册的属性类
+  @Configruation
+  @EnableConfigurationProperties({PropertyBean1.class,...})
+  class ConfigurationRegisterBean {
+    // ...
+  }
+
+  // 通过@ConfigurationPropertiesScan来自动扫描
+  @SpringBootApplication
+  @ConfigurationPropertiesScan({"package-path-1",...})
+  class SpringBootApplicationDemo {
+    // ...
+  }
+  ```
   * 如果为@ConfigurationProperties指定@ConstructorBinding注解，可以指定构造器绑定
     * 如果为一个类指定了构造器绑定，那么该类中的嵌套成员（对象域）也会通过构造器绑定
     * 可以通过@DefaultValue来为配置文件中没有指定的域指定默认值
@@ -103,11 +121,16 @@
     my.map.[key1]=value1
     my.map.[key2]=value2
     ```
+    * 向properties中添加list类型的值，同样可以用[]来包围index
+    ```properties
+    my.list[0]=value0
+    my.list[1]=value1
+    ```
   * Duration绑定
     * 默认情况下，不指定时间单位时单位是ms
     * 通过@DurationUnit指定时间单位
   * DataSize绑定
-    * 默认情况下，DataSize的单位是byte
+    * 默认情况下,DataSize的单位是byte
     * 可以通过@DataSizeUnit来显示指定单位
   * @Value和@ConfigurationProperties区别：
     * @Value只有当其value值是"first-second"形式时，才支持relaxed binding
