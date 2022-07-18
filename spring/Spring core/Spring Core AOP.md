@@ -32,7 +32,7 @@
     ```
 - ## 声明Spring AOP切面
   - 在容器中，任何bean对象，如其类型具有@AspectJ注解，将会被自动探知到并且用来配置spring aop
-  - 在Spring AOP中，aspect其自身是无法作为其他aspect的目标对象的。被标记为@Aspect的类，不经标明其为aspect，并且将其从自动代理中排除
+  - 在Spring AOP中，aspect其自身是无法作为其他aspect的目标对象的。被标记为@Aspect的类，不仅标明其为aspect，并且将其从自动代理中排除
   ```java
   @Component // 将该类型声明为bean对象
   @Aspect // 声明切面
@@ -92,7 +92,7 @@
 
   }
   ```
-  - After:After不管是切入点正常返回还是抛出异常，都会执行
+  - After:After不管是切入点正常返回还是抛出异常，都会执行，类似于finally
   ```java
   @After("execution(* Point.*())")
   public void doSomething() {
@@ -106,4 +106,65 @@
     return isCacheExisted()?returnFromCache():pjp.proceed();
   }
   ```
+- ## Spring AOP中Advice方法对JoinPoint的访问
+  - 任何advice方法，都可以声明声明其第一个参数为JoinPoint类型。@Around标注的adivce方法其第一个参数的类型必须为ProceedingJoinPoint类型，该类型为JoinPoint的子类型
+  - JoinPoint接口具有如下方法：
+    - getArgs：返回方法参数
+    - getThis：返回代理对象
+    - getTarget：返回目标对象
+    - getSignature：返回函数的签名
+    - toString：返回该advice方法的描述信息
+- ## Advice方法通过参数来获取传递给底层方法的参数
+  - 在pointcut表达式的args中，如果用advice方法中的参数名来代替参数类型，那么该类型的参数值会被传递给该参数
+  ```java
+  @Before("execution(* Point.*(..) && args(position,..))")
+  public void adviceMethod(Position position) {
+
+  }
+  ```
+  - 或者，可以通过如下方式，先通过一个Pointcut获取参数，在在另一个方法中获取named pointcut已获取的参数
+  ```java
+  // 此时，adviceMethodTwo同样能够获取Position参数
+  @Pointcut("execution(* Point.*(..)) && args(position,..)")
+  public void adviceMethodOne(Position position) {
+
+  }
+
+  @Before("adviceMethodOne(position)")
+  public void adviceMethodTwo(Position position) {
+
+  }
+  ```
+  - Spring AOP可以通过如下方式来约束泛型的参数
+  ```java
+  @Before("execution(* GenericsInterface+.method(*) && args(param))")
+  public void adviceMethod(DesiredType param) {
+
+  }
+  ```
+- ## 通过Spring AOP对参数进行预处理
+  ```java
+  @Around("execution(* Point.area(*) && args(width,height))")
+  public double caculateInCM(ProceedingJoinPoint jp,double width,double height) {
+    width*=100;
+    height*=100;
+    return jp.proceed(width,height);
+  }
+  ```
+- ## Spring AOP中多个advice对应到同一个Pointcut
+  - 如果多个advice都具有相同的pointcut，那么多个advice之间的执行顺序是未定义的。可以为Aspect类实现Ordered接口，或者添加@Order标记来定义该advice的执行优先级，那么具有具有较小order值的方法将会优先被执行
+- ## Spring AOP Introduction
+  - 在Spring AOP中，可以通过Introduction来声明一个对象继承了某接口，并且为被代理的对象提供被继承接口的实现
+  - 可以通过@DeclareParent注解为指定对象添加接口并且指明该接口默认的实现类，完成后可以直接将生成的代理对象复制给接口变量
+  ```java
+  @Aspect
+  public class MyAspect {
+    @DeclareParent(value="cc.rikakonatsumi.interfaces.*+",defaultImpl=DefaultImpl.class)
+    private static MyInterface myInterface;
+
+    // 之后，可以直接通过this(ref)在pointcut表达式中获取服务对象，也可以通过getBean方法获取容器中的对象
+  }
+  ```
+
+
 
