@@ -165,6 +165,9 @@
     // 之后，可以直接通过this(ref)在pointcut表达式中获取服务对象，也可以通过getBean方法获取容器中的对象
   }
   ```
-
+- ## @RestControllerAdvice的使用
+  - @RestControllerAdvice是@Componnent注解的一个特例，@RestControllerAdivce注解的组成包含@Component
+  - @RestControllerAdivce组合了@ControllerAdvice和@ResponseBody两个注解
+  - 通常，@RestControllerAdvice用作为spring mvc的所有方法做ExceptionHandler
 
 
