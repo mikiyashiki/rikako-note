@@ -33,6 +33,7 @@
 - ## 声明Spring AOP切面
   - 在容器中，任何bean对象，如其类型具有@AspectJ注解，将会被自动探知到并且用来配置spring aop
   - 在Spring AOP中，aspect其自身是无法作为其他aspect的目标对象的。被标记为@Aspect的类，不仅标明其为aspect，并且将其从自动代理中排除
+  - 如果为某个bean对象配置了切面，那么在后续创建该bean对象时，实际上是创建该bean对象的代理对象
   ```java
   @Component // 将该类型声明为bean对象
   @Aspect // 声明切面
@@ -55,10 +56,13 @@
     ```java
     @JoinPoint("within(Point)")
     ```
-    - this：匹配生成的代理对象为该类型的方法
-    - target：匹配目标对象为该类型的方法
-    - args：匹配特定参数的方法
-    - 
+    - this：匹配生成的代理对象为该类型的一个实例
+    - target：匹配目标对象为该类型的一个实例
+    - args：匹配特定参数
+    - @args：传递参数的类型具有指定的注解
+    - @target：运行时该对象的类具有指定的注解
+    - @within：运行时执行的方法，其方法定义在具有指定注解的类中（可以是继承父类的方法，父类指定了注解
+    - @annotation：执行的方法具有指定注解
   - Spring AOP同样支持将JoinPoint匹配为具有特定name的Spring bean对象
     ```java
     @JoinPoint("bean(nameA) || bean(nameB))")
