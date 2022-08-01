@@ -38,3 +38,10 @@
   - 当基于标准spring配置时，应该仅将@Transactional注解标注于public方法，当将@Transactional注解标注于非public方法时无效
   - 在Spring中，仅推荐将@Transactional注解应用于类上，不推荐将其应用在接口（接口方法）上。如果将其应用在接口上，那么该事务配置仅仅对基于接口的动态代理有效，对基于class的代理无效。
   - 当类级别和方法级别都设置了@Transactional注解时，方法级别的设置会优先被使用
+- ## @Transactional注解的配置
+  - 事务的传播： 默认情况下，@Transactional的propagation属性是PROPAGATION_REQUIRED
+  - 事务的隔离级别： 默认情况下，@Transactional的isolation属性是ISOLATION_DEFAULT，使用数据库默认的隔离级别
+  - readOnly： 默认情况下，@Transactional的readOnly属性是false，默认事务是可读写的
+  - timeout： 默认况下下，@Transactional的超时属性取决于底层的事务系统，如果底层事务系统不支持timeout，则timeout属性为none
+  - rollbackFor： 默认情况下，@Transactional会针对unchecked异常和Error进行回滚操作
+  - transactionManager： 默认情况下，@Transactional注解会使用项目中默认的事务管理器（即bean name为transactionManager的事务管理器）。可以为@Transactional注解指定value属性或是transactionManager属性来指定想要采用的事务管理器的bean name或是qualifier
