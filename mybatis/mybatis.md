@@ -166,3 +166,20 @@ Mybatis可以设置复数个环境，但是对于每一个SqlSessionFactory对�
   <mapper resource="org/mybatis/builder/PostMapper.xml"/>
 </mappers>
 ```
+# Mybatis Mapper
+## select
+通常来说，数据库操作中select的频率远远大于update、insert、delete的频率。    
+select元素有如下属性：
+- id： 命名空间中唯一的标识符，用来引用该sql声明
+- parameterType： 传递参数的全限定类名或者alias，该属性是可选的，mybatis会根据根据实际传递的参数来计算应该使用的typeHandler
+- resultType：方法预期返回类型的全类名
+> 如果方法的返回类型是集合类型，那么resultType为集合中包含元素的类型，而不是集合本身的类型。
+- resultMap：对于外部resultMap的命名引用
+- flushCache：如果该属性设置为true，在该Statement被调用时，会导致本地缓存和二级缓存都被刷新。默认情况下，flushCache被设置为false。
+- useCache：如果该属性设置为true，会导致该Statement的查询结果被缓存在二级缓存中。默认情况下，useCache属性为true。
+> mybatis缓存结构：
+> - 一级缓存： mybatis一级缓存是针对SqlSession的缓存，如果SqlSession查询数据会将第一次查询到的数据存放在Map缓冲区中。如果后续SqlSession没有对数据进行添加、修改、删除等操作，那么缓存将会失效。  
+>   默认情况下，若未开启事务，那么每条语句都可以看作一个事务，多条select语句之间都会刷新缓  存，一级缓存不会起作用。
+> - 二级缓存：mybatis中二级缓存是针对Mapper级别的。二级缓存针对mapper.xml中所有Statement的作用域。二级缓存可以在多个SqlSession之间进行共享。
+>   在执行sql查询之前，如果执行了插入或者删除操作，那么二级缓存会失效。
+>   二级缓存需要手动配置，settings标签中cacheEnabled默认是true，只需要在需开启缓存的mapper.xml中加入cache标签即可开启二级缓存
