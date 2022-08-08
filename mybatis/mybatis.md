@@ -183,3 +183,19 @@ select元素有如下属性：
 > - 二级缓存：mybatis中二级缓存是针对Mapper级别的。二级缓存针对mapper.xml中所有Statement的作用域。二级缓存可以在多个SqlSession之间进行共享。
 >   在执行sql查询之前，如果执行了插入或者删除操作，那么二级缓存会失效。
 >   二级缓存需要手动配置，settings标签中cacheEnabled默认是true，只需要在需开启缓存的mapper.xml中加入cache标签即可开启二级缓存
+- timeout：drvier会等待数据库返回查询结果的超时时间，如果超过该timeout上线，那么会抛出异常。默认情况下，该timeout是未设置的，取决于底层的driver
+## update、insert、delete
+修改语句通常有如下属性：
+- id
+- parameterType
+- flushCache
+- timeout
+- statementType: STATEMENT/PREPARED/CALLABLE其中之一，默认值为PREPARED
+> statementType通常可以设置为如下值之一：
+> - STATEMENT:mybatis会使用Statement
+> - PREPARED:mybatis会使用PreparedStatement
+> - CALLABLE:mybatis会使用CallableStatement
+- useGeneratedKeys：当useGeneratedKeys被设置为true时，会调用JDBC中的getGeneratedKeys方法从数据库内部获取自动生成的key。默认情况下该值为false
+> 该属性仅针对insert和update语句
+- keyProperty：后跟随字段或者字段列表，对于想要数据库内部自动生成的字段，mybatis会通过getGeneratedKeys方法返回的值来设置该字段的内容；对于想要自定义字段自动生成（如随机生成）的字段，mybatis会通过insert元素selectKey子元素中的值来设置
+- 
