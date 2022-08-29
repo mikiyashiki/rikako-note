@@ -86,13 +86,67 @@ typeAliases标签中可以定义全限定类名的别名，在定义typeAliases�
 ### typeHandler
 每当mybatis向PreparedStatement设置值或者从ResultSet中获取值时，typeHandler都会使用合适的方法来将ResultSet中的属性传递给java类对象或者从Java类对象中获取属性并将其传递给PreparedStatement的sql语句。     
 mybatis内置了很多typeHandler，用户可以实现自己的TypeHandler，通过实现TypeHandler接口或者继承BaseTypeHandler类。     
-可以通过为typeHandler设置javaType和jdbcType属性来指定typeHandler对应的java类型和jdbc类型。      
+```java
+/**
+  * 该方法会覆盖默认的针对String类型和varchar类型的typeHandler
+**/
+// ExampleTypeHandler.java
+@MappedJdbcTypes(JdbcType.VARCHAR)
+public class ExampleTypeHandler extends BaseTypeHandler<String> {
+
+  @Override
+  public void setNonNullParameter(PreparedStatement ps, int i,
+    String parameter, JdbcType jdbcType) throws SQLException {
+    ps.setString(i, parameter);
+  }
+
+  @Override
+  public String getNullableResult(ResultSet rs, String columnName)
+    throws SQLException {
+    return rs.getString(columnName);
+  }
+
+  @Override
+  public String getNullableResult(ResultSet rs, int columnIndex)
+    throws SQLException {
+    return rs.getString(columnIndex);
+  }
+
+  @Override
+  public String getNullableResult(CallableStatement cs, int columnIndex)
+    throws SQLException {
+    return cs.getString(columnIndex);
+  }
+}
+```
+```xml
+<!-- mybatis-config.xml -->
+<typeHandlers>
+  <typeHandler handler="org.mybatis.example.ExampleTypeHandler"/>
+</typeHandlers>
+```
+mybatis会通过泛型参数来获知其typeHandler想要处理的javaType，但是可以通过两种方法来覆盖该种行为：
+- 在typeHandler元素中添加javaType属性（例如，javaType="String")
+- 通过@MappedTypes注解指定该typeHandler想要对应的javaType列表（如果javaType属性在typeHandler元素中被指定，那么该注解内容将会被忽略）
+
+同样的，jdbcType也可以通过两种方式来指定：
+- 在typeHandler元素中添加jdbcType属性（例如，jdbcType="VARCHAR")
+- 为typeHandler类添加@MappedJdbcTypes注解，并且在jdbcType属性被指定时该注解被忽略
+      
 当决定在ResultMap中使用typeHandler时，java类型已知但是jdbc类型未知。因此ResultMap采用javaType=[javaType],jdbcType=null的组合来选择typeHandler。为了使typeHandler在ResultMap中能够被使用，需要在@MappedJdbcTypes加入includeNullJdbcType=true。
 > 如果对于某一个java类型，只有一个typeHandler被注册，那么该typeHandler会自动被使用，即使includeNullJdbcType=true并没有被设置。
 ### EnumTypeHandler
 对于枚举类型的处理，可以使用EnumTypeHandler和EnumOridinalTypeHandler。
 > 默认情况下，mybatis会使用EnumTypeHandler来处理枚举类型，会将枚举类型的转化成其名字的字符串。      
-> 可以强制将EnumOridinalTypeHandler指定给typeHandler属性，此时会将枚举类型转换成其对应的数字值。
+> 可以强制将EnumOridinalTypeHandler指定给sql语句的typeHandler属性，此时会将枚举类型转换成其对应的数字值。
+```xml
+<!-- 将枚举类型通过数字存储 -->
+<!-- mybatis-config.xml -->
+<typeHandlers>
+  <typeHandler handler="org.apache.ibatis.type.EnumOrdinalTypeHandler"
+    javaType="java.math.RoundingMode"/>
+</typeHandlers>
+```
 可以在不同的地方使用不同的枚举类型处理器，将其映射为整数类型或字符串类型。只需在mapper使用非默认类型时显示指定即可。
 ```xml
 <mapper namespace="org.apache.ibatis.submitted.rounding.Mapper">
@@ -100,6 +154,7 @@ mybatis内置了很多typeHandler，用户可以实现自己的TypeHandler，通
         <id column="id" property="id"/>
         <result column="name" property="name"/>
         <result column="funkyNumber" property="funkyNumber"/>
+        <!-- 默认情况下，在指定完typeHandler为EnumOrdinalTypeHandler后，其roundingMode被映射为数字 -->
         <result column="roundingMode" property="roundingMode"/>
     </resultMap>
 
@@ -112,6 +167,7 @@ mybatis内置了很多typeHandler，用户可以实现自己的TypeHandler，通
         )
     </insert>
 
+    <!-- 为resultMap显示指定column的typeHandler为EnumTypeHandler -->
     <resultMap type="org.apache.ibatis.submitted.rounding.User" id="usermap2">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
@@ -122,6 +178,7 @@ mybatis内置了很多typeHandler，用户可以实现自己的TypeHandler，通
     <select id="getUser2" resultMap="usermap2">
         select * from users2
     </select>
+    <!-- insert语句中在#{}中显式指定typeHandler -->
     <insert id="insert2">
         insert into users2 (id, name, funkyNumber, roundingMode) values (
             #{id}, #{name}, #{funkyNumber}, #{roundingMode, typeHandler=org.apache.ibatis.type.EnumTypeHandler}
@@ -136,6 +193,7 @@ mybatis会使用ObjectFactory来创建返回对象。ObjectFactory仅仅会调�
 Mybatis可以设置复数个环境，但是对于每一个SqlSessionFactory对象，只能够选择一个环境。为了指定构建的环境，可以将其以参数的方式传递给SqlSessionFactoryBuilder.build。如果environment参数被省略，那么默认的环境将会被采用。     
 环境的配置格式如下：
 ```xml
+<!-- 设置默认环境为development -->
 <environments default="development">
   <environment id="development">
     <transactionManager type="JDBC">
@@ -175,6 +233,7 @@ select元素有如下属性：
 - resultType：方法预期返回类型的全类名
 > 如果方法的返回类型是集合类型，那么resultType为集合中包含元素的类型，而不是集合本身的类型。
 - resultMap：对于外部resultMap的命名引用
+> 对于resultType和resultMap，应该只使用其中的一个，同一条select语句中不应该既包含resultType又包含resultMap
 - flushCache：如果该属性设置为true，在该Statement被调用时，会导致本地缓存和二级缓存都被刷新。默认情况下，flushCache被设置为false。
 - useCache：如果该属性设置为true，会导致该Statement的查询结果被缓存在二级缓存中。默认情况下，useCache属性为true。
 > mybatis缓存结构：
@@ -198,4 +257,52 @@ select元素有如下属性：
 - useGeneratedKeys：当useGeneratedKeys被设置为true时，会调用JDBC中的getGeneratedKeys方法从数据库内部获取自动生成的key。默认情况下该值为false
 > 该属性仅针对insert和update语句
 - keyProperty：后跟随字段或者字段列表，对于想要数据库内部自动生成的字段，mybatis会通过getGeneratedKeys方法返回的值来设置该字段的内容；对于想要自定义字段自动生成（如随机生成）的字段，mybatis会通过insert元素selectKey子元素中的值来设置
-- 
+```xml
+<!-- 使用mysql数据库自动生成的key（如auto_increment) -->
+<insert id="insertAuthor" useGeneratedKeys="true"
+    keyProperty="id">
+  insert into Author (username,password,email,bio)
+  values (#{username},#{password},#{email},#{bio})
+</insert>
+
+
+<!-- 通过自定义方式生成的主键来填充id -->
+<insert id="insertAuthor">
+  <selectKey keyProperty="id" resultType="int" order="BEFORE">
+    select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
+  </selectKey>
+  insert into Author
+    (id, username, password, email,bio, favourite_section)
+  values
+    (#{id}, #{username}, #{password}, #{email}, #{bio}, #{favouriteSection,jdbcType=VARCHAR})
+</insert>
+```
+### selectKey
+对于selectKey子元素，其通常具有如下属性：
+- keyProperty：该属性指定selectKey生成的结果应该被设置到insert语句的哪个地方
+- resultType：selectKey语句执行结果的返回类型
+- order：可以是“BEFORE"或者”AFTER"，如果被设置为“BEFORE"，那么会先执行selectKey，然后将产生结果设置到keyProperty，最后才会执行insert语句
+
+## sql
+sql标签通常被用来定义一些可以复用的sql片段，sql片段可以接受一个参数。  
+sql标签定义的sql片段可以被include标签进行引用，并且include标签的refid属性对应sql标签的id属性。
+> 如果一个sql片段嵌套了另一个sql片段，那么在sql语句include外层sql片段时，可以同时为内层和外层sql片段的变量进行赋值操作
+```xml
+<sql id="sometable">
+  ${prefix}Table
+</sql>
+
+<sql id="someinclude">
+  from
+    <include refid="${include_target}"/>
+</sql>
+
+<select id="select" resultType="map">
+  select
+    field1, field2, field3
+  <include refid="someinclude">
+    <property name="prefix" value="Some"/>
+    <property name="include_target" value="sometable"/>
+  </include>
+</select>
+```
