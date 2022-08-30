@@ -306,3 +306,193 @@ sql标签定义的sql片段可以被include标签进行引用，并且include标
   </include>
 </select>
 ```
+## parameter
+- 简单的参数映射
+```xml
+<!-- 在该简单映射中，对于基本数据类型或者如String、Integer等没有属性的简单数据类型，会用该类数据的值完全替换参数的值 -->
+<select id="selectUsers" resultType="User">
+  select id, username, password
+  from users
+  where id = #{id}
+</select>
+```
+- 向参数传递复杂对象，例如User类型对象，那么将会从对象中获取id、username、password等属性并传递给参数
+```xml
+<insert id="insertUser" parameterType="User">
+  insert into users (id, username, password)
+  values (#{id}, #{username}, #{password})
+</insert>
+```
+## mybatis ${}
+对于mybatis，可以通过#{}来设置PreparedStatement的占位参数，但是，当想要动态设置sql statement中的元数据（如表名称、字段名称）时，可以通过${}来插入一个未修改的字符串进行拼串。
+```java
+// 未使用${}
+@Select("select * from user where id = #{id}")
+User findById(@Param("id") long id);
+
+@Select("select * from user where name = #{name}")
+User findByName(@Param("name") String name);
+
+@Select("select * from user where email = #{email}")
+User findByEmail(@Param("email") String email);
+
+// 使用${}之后
+@Select("select * from user where ${column} = #{value}")
+User findByColumn(@Param("column") String column, @Param("value") String value);
+```
+## resultMap
+- 对于简单的statement，其映射不需要用到resultMap
+```xml
+<!-- 返回集中所有的column会自动映射到HashMap中的key -->
+<select id="selectUsers" resultType="map">
+  select id, username, hashedPassword
+  from some_table
+  where id = #{id}
+</select>
+```
+- 对于POJO，当select的返回列名和POJO类的属性名相同时，会自动生成resultMap来将column和POJO对象属性关联到一起
+```xml
+<select id="selectUsers" resultType="com.someapp.model.User">
+  select
+    user_id             as "id",
+    user_name           as "userName",
+    hashed_password     as "hashedPassword"
+  from some_table
+  where id = #{id}
+</select>
+```
+- 自定义外部的resultMap来映射到User类
+```xml
+<resultMap id="userResultMap" type="com.someapp.model.User">
+  <id property="id" column="user_id" />
+  <result property="username" column="user_name"/>
+  <result property="password" column="hashed_password"/>
+</resultMap>
+
+<select id="selectUsers" resultMap="userResultMap">
+  select user_id, user_name, hashed_password
+  from some_table
+  where id = #{id}
+</select>
+```
+- 高级结果集映射
+```xml
+<!-- Very Complex Statement -->
+<select id="selectBlogDetails" resultMap="detailedBlogResultMap">
+  select
+       B.id as blog_id,
+       B.title as blog_title,
+       B.author_id as blog_author_id,
+       A.id as author_id,
+       A.username as author_username,
+       A.password as author_password,
+       A.email as author_email,
+       A.bio as author_bio,
+       A.favourite_section as author_favourite_section,
+       P.id as post_id,
+       P.blog_id as post_blog_id,
+       P.author_id as post_author_id,
+       P.created_on as post_created_on,
+       P.section as post_section,
+       P.subject as post_subject,
+       P.draft as draft,
+       P.body as post_body,
+       C.id as comment_id,
+       C.post_id as comment_post_id,
+       C.name as comment_name,
+       C.comment as comment_text,
+       T.id as tag_id,
+       T.name as tag_name
+  from Blog B
+       left outer join Author A on B.author_id = A.id
+       left outer join Post P on B.id = P.blog_id
+       left outer join Comment C on P.id = C.post_id
+       left outer join Post_Tag PT on PT.post_id = P.id
+       left outer join Tag T on PT.tag_id = T.id
+  where B.id = #{id}
+</select>
+
+<!-- Very Complex Result Map -->
+<resultMap id="detailedBlogResultMap" type="Blog">
+  <constructor>
+    <idArg column="blog_id" javaType="int"/>
+  </constructor>
+  <result property="title" column="blog_title"/>
+  <association property="author" javaType="Author">
+    <id property="id" column="author_id"/>
+    <result property="username" column="author_username"/>
+    <result property="password" column="author_password"/>
+    <result property="email" column="author_email"/>
+    <result property="bio" column="author_bio"/>
+    <result property="favouriteSection" column="author_favourite_section"/>
+  </association>
+  <collection property="posts" ofType="Post">
+    <id property="id" column="post_id"/>
+    <result property="subject" column="post_subject"/>
+    <association property="author" javaType="Author"/>
+    <collection property="comments" ofType="Comment">
+      <id property="id" column="comment_id"/>
+    </collection>
+    <collection property="tags" ofType="Tag" >
+      <id property="id" column="tag_id"/>
+    </collection>
+    <discriminator javaType="int" column="draft">
+      <case value="1" resultType="DraftPost"/>
+    </discriminator>
+  </collection>
+</resultMap>
+```
+### resultMap的元素和属性
+- resultMap中可嵌套如下元素：
+  - constructor：在通过构造方法实例化类时，将select语句返回的result注入到构造方法中
+    - idArg：标识为id的参数，将result标识为id可以提高整体的性能
+    - arg：将result注入到constructor中
+  - id：标识为id的result，将result标识为id可以提高整体性能
+  - result：select语句返回的result，将被注入到返回POJO类型的field
+  - association：复杂关联，返回results中的部分results将会被包装到这种关联中
+    - 关联被嵌套在resultMap中，关联本身可以是resultMap，或者可以引用一个外部resultMap
+  - collection：复杂类型的集合
+    - 集合被嵌套在resultMap中，其本身可以是一个resultMap，或者其可以引用要给外部的resultMap
+  - discrimination：鉴别器，可以通过结果值来判断使用哪个resultMap
+    - case：条件选项，当值为xx时使用特定的resultMap
+    - case同样是一个resultMap，case可以是resultMap本身，也可以引用其他的resultMap
+- resultMap元素可包含如下属性：
+  - id：在命名空间内，可以通过该id引用该resultMap
+  - type：java类的全限定类名或typeAlias
+  - autoMapping：为resultMap开启或关闭自动映射
+### id和result元素
+id和result元素是resultMap的基础，id和result都将一个column字段值映射到java类型的field域。
+> id和result标签的区别是，当result被标识为id时，该result将会被看作对象的标识符，在比较对象时id result将会被使用。这样可以提高整体性能，尤其是在缓存或是嵌套resultMap时。  
+
+- id和result元素的属性：
+  - property：column映射到的java对象的field
+  - column：数据库表的列名
+  - javaType：java类型的全限定类名或者typeAlias，通常映射到java bean时mybatis可以推断java类型，但是当映射到HashMap时，需要显式指定javaType
+  - jdbcType
+  - typeHandler
+### constructor元素
+当想要构建不可变对象时，可以通过constructor属性来向构造方法中注入result构建对象。
+```java
+public class User {
+   //...
+   public User(Integer id, String username, int age) {
+     //...
+  }
+//...
+}
+```
+```xml
+<constructor>
+   <!-- 该constructor会自动匹配构造方法参数为(Integer,String,int)的构造函数 -->
+   <idArg column="id" javaType="int"/>
+   <arg column="username" javaType="String"/>
+   <arg column="age" javaType="_int"/>
+</constructor>
+```
+- constructor元素的属性：
+  - column：数据库表列名
+  - javaType
+  - jdbcType
+  - typeHandler
+  - resultMap
+  - select
