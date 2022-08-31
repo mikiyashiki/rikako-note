@@ -496,3 +496,336 @@ public class User {
   - typeHandler
   - resultMap
   - select
+### association元素
+association元素通常用来标识“has-a”的关系，通过关联，有两种方式将数据加载到关联中去
+- 嵌套select：执行另一个sql statement并且返回预期的复杂对象
+- 嵌套result：通过嵌套的result mapping来处理连接结果的重复子集
+#### 嵌套select
+嵌套select,其会先返回查询的主表数据,对关联的子表数据会通过association标签指定的select属性值来再次执行sql查找预期数据并组装城复杂对象   
+当使用嵌套select来处理association时,association标签具有如下属性：
+- column：数组库表的列名，该列保存的值将会被传递给嵌套的statement作为输入参数。
+> 当想要传递复合key作为输入参数时，可以通过column="{prop1=col1,prop2=col2}"的形式来传递参数，这会导致传递给嵌套statement的参数对象的prop1和prop2属性被设置
+- select：会返回预期复杂类型的其他select statement标签的id
+- fetchType：可选参数，可以为“lazy”或者“eager”，会覆盖全局配置中的lazyLoadingEnable
+```xml
+<!-- association内层嵌套样例 -->
+<resultMap id="blogResult" type="Blog">
+  <association property="author" column="author_id" javaType="Author" select="selectAuthor"/>
+</resultMap>
+
+<select id="selectBlog" resultMap="blogResult">
+  SELECT * FROM BLOG WHERE ID = #{id}
+</select>
+
+<select id="selectAuthor" resultType="Author">
+  SELECT * FROM AUTHOR WHERE ID = #{id}
+</select>
+```
+> 对于嵌套select方法来加载association,其会导致***N+1***的问题  
+> 例如,当一条select语句返回一个数据集时,通过嵌套select语句来加载association,其会:
+> #### 对数据集中的每一条数据,都会再次执行一个select语句来为该条数据加载association信息,当数据集中数据条数很多时,如果未设置延迟加载,那么成百上千的sql语句被执行,会严重影响性能
+
+#### 嵌套result
+不同于嵌套select先查主表信息后再次执行sql语句查询关联子表数据,嵌套result会通过A JOIN B关联来通过查询需要的主表信息和子表信息  
+嵌套result不需要像嵌套select一样分次执行sql语句
+> #### 使用嵌套result时association可以使用的属性
+> - resultMap:指定用于将results加载到association的resultMap id
+> - columnPrefix:可以将具有某一个前缀的列映射到外部的resultMap中,从而即使在select语句中重新为列名定义了alias(添加了前缀,如"co_"等),还是能复用外部的同一个resultMap
+> - notNullColumn:该属性可以指定多个列,只有当指定的多个列中任何一个不为空时,mybatis
+> 才会创建该子对象
+> - autoMapping:开启或关闭自动映射,该属性对外部映射无效,故而不能搭配select或者resultMap使用
+```xml
+<!-- 通过left join连接两个表 -->
+<select id="selectBlog" resultMap="blogResult">
+  select
+    B.id            as blog_id,
+    B.title         as blog_title,
+    B.author_id     as blog_author_id,
+    A.id            as author_id,
+    A.username      as author_username,
+    A.password      as author_password,
+    A.email         as author_email,
+    A.bio           as author_bio
+  from Blog B left outer join Author A on B.author_id = A.id
+  where B.id = #{id}
+</select>
+<!-- resultMap,映射主表信息 -->
+<resultMap id="blogResult" type="Blog">
+  <id property="id" column="blog_id" />
+  <result property="title" column="blog_title"/>
+  <!-- association的resultMap属性指定为其他resultMap的id,嵌套resultMap -->
+  <association property="author" resultMap="authorResult" />
+</resultMap>
+<!-- resultMap,映射子表信息 -->
+<resultMap id="authorResult" type="Author">
+  <id property="id" column="author_id"/>
+  <result property="username" column="author_username"/>
+  <result property="password" column="author_password"/>
+  <result property="email" column="author_email"/>
+  <result property="bio" column="author_bio"/>
+</resultMap>
+```
+> 在嵌套result中,id元素(被标识为id的result)非常重要,应该指定一个或多个属性标识为id来唯一标识该对象.  
+> 当没有指定id result时,mybatis也会正常运行,但是会产生严重的性能问题  
+> 应尽可能的将能唯一标识该结果的最小字段集标识为id(可以选择主键或符合主键)
+
+对于嵌套result,除了上述的办法,还可以将association对应的resultMap直接嵌套写入association的子标签中,样例如下:
+```xml
+<resultMap id="blogResult" type="Blog">
+  <id property="id" column="blog_id" />
+  <result property="title" column="blog_title"/>
+  <association property="author" javaType="Author">
+    <id property="id" column="author_id"/>
+    <result property="username" column="author_username"/>
+    <result property="password" column="author_password"/>
+    <result property="email" column="author_email"/>
+    <result property="bio" column="author_bio"/>
+  </association>
+</resultMap>
+```
+共同作者:通过columnPrefix属性复用外部resultMap的情况
+```xml
+<!-- 连接author表两次,为author表字段添加不同前缀 -->
+<select id="selectBlog" resultMap="blogResult">
+  select
+    B.id            as blog_id,
+    B.title         as blog_title,
+    A.id            as author_id,
+    A.username      as author_username,
+    A.password      as author_password,
+    A.email         as author_email,
+    A.bio           as author_bio,
+    CA.id           as co_author_id,
+    CA.username     as co_author_username,
+    CA.password     as co_author_password,
+    CA.email        as co_author_email,
+    CA.bio          as co_author_bio
+  from Blog B
+  left outer join Author A on B.author_id = A.id
+  left outer join Author CA on B.co_author_id = CA.id
+  where B.id = #{id}
+</select>
+<!-- resultMap,将results映射为Author类,可被复用 -->
+<resultMap id="authorResult" type="Author">
+  <id property="id" column="author_id"/>
+  <result property="username" column="author_username"/>
+  <result property="password" column="author_password"/>
+  <result property="email" column="author_email"/>
+  <result property="bio" column="author_bio"/>
+</resultMap>
+<!-- 复用外部的authorResult resultMap -->
+<resultMap id="blogResult" type="Blog">
+  <id property="id" column="blog_id" />
+  <result property="title" column="blog_title"/>
+  <association property="author"
+    resultMap="authorResult" />
+  <!-- 通过columnPrefix指定前缀,将添加前缀的results仍然映射到resultMap -->
+  <association property="coAuthor"
+    resultMap="authorResult"
+    columnPrefix="co_" />
+</resultMap>
+```
+### collection元素
+collection元素用来处理A类中含有List&lt;B&gt;属性的情况,其用法基本和association元素相同
+```xml
+<collection property="posts" ofType="domain.blog.Post">
+  <id property="id" column="post_id"/>
+  <result property="subject" column="post_subject"/>
+  <result property="body" column="post_body"/>
+</collection>
+```
+和association元素相同,coolection元素也可以通过嵌套select或者嵌套result来映射复杂类型
+#### collection元素的嵌套select
+```xml
+<resultMap id="blogResult" type="Blog">
+  <collection property="posts" javaType="ArrayList" column="id" ofType="Post" select="selectPostsForBlog"/>
+</resultMap>
+
+<select id="selectBlog" resultMap="blogResult">
+  SELECT * FROM BLOG WHERE ID = #{id}
+</select>
+
+<select id="selectPostsForBlog" resultType="Post">
+  SELECT * FROM POST WHERE BLOG_ID = #{id}
+</select>
+```
+#### collection元素的嵌套result
+```xml
+<!-- 关联查询 -->
+<select id="selectBlog" resultMap="blogResult">
+  select
+  B.id as blog_id,
+  B.title as blog_title,
+  B.author_id as blog_author_id,
+  P.id as post_id,
+  P.subject as post_subject,
+  P.body as post_body,
+  from Blog B
+  left outer join Post P on B.id = P.blog_id
+  where B.id = #{id}
+</select>
+<!-- 嵌套result -->
+<resultMap id="blogResult" type="Blog">
+  <id property="id" column="blog_id" />
+  <result property="title" column="blog_title"/>
+  <collection property="posts" ofType="Post">
+    <id property="id" column="post_id"/>
+    <result property="subject" column="post_subject"/>
+    <result property="body" column="post_body"/>
+  </collection>
+</resultMap>
+<!-- 嵌套result并复用外部resultMap -->
+<resultMap id="blogResult" type="Blog">
+  <id property="id" column="blog_id" />
+  <result property="title" column="blog_title"/>
+  <collection property="posts" ofType="Post" resultMap="blogPostResult" columnPrefix="post_"/>
+</resultMap>
+
+<resultMap id="blogPostResult" type="Post">
+  <id property="id" column="id"/>
+  <result property="subject" column="subject"/>
+  <result property="body" column="body"/>
+</resultMap>
+```
+## discriminator
+某些情况下,单条sql查询语句会返回具有不同类型的结果集(如不同的Car数据,但是有卡车和轿车的区别).  
+discriminator可以通过某些字段的值来选择性采用某些resultMap,并且支持继承层次.  
+```xml
+<!-- 
+  通过vehicle_type字段的值来选择采用那些resultMap 
+  当某行数据vihicle_type字段值为1时,只有carResult的resultMap会被使用,外面如vin等属性都不会被映射
+  如果想要
+-->
+<resultMap id="vehicleResult" type="Vehicle">
+  <id property="id" column="id" />
+  <result property="vin" column="vin"/>
+  <result property="year" column="year"/>
+  <result property="make" column="make"/>
+  <result property="model" column="model"/>
+  <result property="color" column="color"/>
+  <discriminator javaType="int" column="vehicle_type">
+    <case value="1" resultMap="carResult"/>
+    <case value="2" resultMap="truckResult"/>
+    <case value="3" resultMap="vanResult"/>
+    <case value="4" resultMap="suvResult"/>
+  </discriminator>
+</resultMap>
+
+<resultMap id="carResult" type="Car">
+  <result property="doorCount" column="door_count" />
+</resultMap>
+```
+如果想要在使用carResult时也执行vehicleResult中的映射,可以在carResult中指定extends属性
+```xml
+<resultMap id="carResult" type="Car" extends="vehicleResult">
+  <result property="doorCount" column="door_count" />
+</resultMap>
+```
+## automapping
+对于automapping,其会获取resultset中的字段名并且在java对象中查找同名的property(忽略大小写,如果想将数据表字段名的underscore形式映射到java类的camelCase属性,可以在mybatis config文件中添加mapUnderscoreToCamelCase配置).  
+即使手动指定了resultMap,automapping一样会发挥作用.对于每个指定的resultMap,所有在resultSet中出现过的字段如果没有在resultMap中手动为其配置一个映射,那么会对该字段执行automapping.
+```xml
+<!-- 如下列中,password会被手动映射,而id和userName都会被自动映射 -->
+<select id="selectUsers" resultMap="userResultMap">
+  select
+    user_id             as "id",
+    user_name           as "userName",
+    hashed_password
+  from some_table
+  where id = #{id}
+</select>
+
+<resultMap id="userResultMap" type="User">
+  <result property="password" column="hashed_password"/>
+</resultMap>
+```
+> 自动映射有三种等级,可以在mybatis config文件中进行配置
+> - NONE:禁用自动配置
+> - PARTIAL:会对除嵌套result映射以外的属性进行自动行摄
+> - FULL:会对所有属性执行自动映射
+```xml
+<!-- 
+  对于该映射,当automapping level为full时,由于Blog和Author类中都具有id属性,故而在automapping时会将Blog
+  对象中的id和Author对象中的id都填充为B.id,该行为是非预期的
+  而对于automapping level为partial时,该automapping不会填充嵌套result映射中的属性,故而只会填充Blog类中
+  的id属性,而不会填充Author类中的id属性
+ -->
+<select id="selectBlog" resultMap="blogResult">
+  select
+    B.id,
+    B.title,
+    A.username,
+  from Blog B left outer join Author A on B.author_id = A.id
+  where B.id = #{id}
+</select>
+
+<resultMap id="blogResult" type="Blog">
+  <association property="author" resultMap="authorResult"/>
+</resultMap>
+
+<resultMap id="authorResult" type="Author">
+  <result property="username" column="author_username"/>
+</resultMap>
+```
+默认情况下,automapping级别为partial,并且可以为resultMap元素指定autoMapping属性为false来为该resultMap关闭autoMapping
+```xml
+<resultMap id="userResultMap" type="User" autoMapping="false">
+  <result property="password" column="hashed_password"/>
+</resultMap>
+```
+## mybatis缓存
+默认情况下,mybatis只启用了会话级别的缓存,其缓存数据只在sqlsession期间有效.  
+如果想要开启二级缓存,只需要在接口对应的mapper文件中添加一行
+```xml
+<cache/>
+```
+该行语句的效果如下:
+- 所有select语句的执行结果都会被缓存
+- 所有insert/update/delete语句都会清除缓存
+- 缓存会通过LRU算法来作为淘汰策略
+- 缓存不定期的刷新
+- 缓存会存储1024个引用指向列表或者对象(不管查询方法会返回哪种类型)
+- 缓存被设计为可读写缓存,通过缓存获取到的对象并不会和其他线程共享,故而可以安全的对获取到的对象进行共享
+> 缓存只会作用于位于mapper文件中的语句,如果使用java api和xml混合的方式,那么在共用接口声明的sql语句并不会被缓存.
+
+可以自定义二级缓存
+```xml
+<!-- 
+  该二级缓存通过FIFO策略进行淘汰
+  刷新缓存周期为60000ms
+  缓存大小可以保存512个结果(类型为对象或列表:queryForOne或queryForList)
+  该缓存是只读的,对该缓存的写操作可能会产生线程安全问题
+ -->
+<cache
+  eviction="FIFO"
+  flushInterval="60000"
+  size="512"
+  readOnly="true"/>
+```
+对于二级缓存,可以使用的淘汰策略有:
+- LRU:默认策略
+- FIFO
+- SOFT:基于垃圾回收器状态和软引用规则移除对象
+- WEAK:弱引用,基于垃圾回收器状态和弱引用规则移出对象
+
+flushInterval:
+- 定义cache的刷新间隔,单位为ms,默认没有刷新间隔
+
+size:
+- 定义缓存大小,为引用数目,默认为1024
+
+readOnly:
+- true:只读,会给所有调用者返回相同的缓存对象实例,调用者如果进行修改可能会产生线程安全问题
+- false:可读写,会给所有调用者返回缓存对象的拷贝,调用者可以安全的对返回对象进行修改,默认情况下缓存类型是可读写的
+
+> ### 二级缓存的事务性
+> 当sqlsession完成并且提交,或完成并回滚时,即使没有执行flushCache=true的insert/delete/update,缓存也会进行刷新
+
+> select/update/insert/delete
+> sql语句都会有flushCache属性,指定是否在执行完成后刷新cache,默认情况下,select标签的flushCache属性为false,insert/update/delete语句的flushCache属性为true
+
+### cache-ref
+默认情况下,某一命名空间中的语句只会对当前命名空间中的cache进行刷新.但是,如果想在多个命名空间(Mapper)之间共享缓存,可以通过cache-ref来引用其他命名空间中的缓存.
+```xml
+<cache-ref namespace="com.someone.application.data.SomeMapper"/>
+```
