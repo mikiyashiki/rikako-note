@@ -829,3 +829,111 @@ readOnly:
 ```xml
 <cache-ref namespace="com.someone.application.data.SomeMapper"/>
 ```
+
+## 动态sql
+### if
+可以通过&lt;if&gt;标签根据条件向where子句中添加查询条件
+```xml
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <if test="title != null">
+    AND title like #{title}
+  </if>
+  <if test="author != null and author.name != null">
+    AND author_name like #{author.name}
+  </if>
+</select>
+```
+### choose、when、otherwise
+不同于if会检测所有的条件，choose、when、otherwise只会从多个条件中选择一个使用，类似于java中的switch。
+```xml
+<!-- 
+  如果传入了title，那么会只按照title查找
+  如果title没有传入，且author传入，那么会按照author查找
+  如果title和author都没有提供，那么会根据featured=1查找
+ -->
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <choose>
+    <when test="title != null">
+      AND title like #{title}
+    </when>
+    <when test="author != null and author.name != null">
+      AND author_name like #{author.name}
+    </when>
+    <otherwise>
+      AND featured = 1
+    </otherwise>
+  </choose>
+</select>
+```
+### where、trim、set
+#### where
+对于where标签，只有在子元素返回任何内容不为空的前提下才会插入where子句，并且，如果子句开头返回的内容为”or“或者”and“，则where标签会删除子句开头的”and“或者”or“
+```xml
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG
+  <where>
+    <if test="state != null">
+         state = #{state}
+    </if>
+    <if test="title != null">
+        AND title like #{title}
+    </if>
+    <if test="author != null and author.name != null">
+        AND author_name like #{author.name}
+    </if>
+  </where>
+</select>
+```
+#### trim
+如果where标签并不能满足场景需求，那么可以通过trim来自定义想要实现的场景需求。  
+和where标签等价的trim标签为
+```xml
+<trim prefix="WHERE" prefixOverrides="AND |OR ">
+  ...
+</trim>
+```
+对于trim标签，其会匹配prefixOverrides属性中指定的内容，文本内容通过'|'符号分隔，并将开头prefixOverrides中的内容删除,并在首部加入prefix属性指定的内容
+#### set
+set标签用于update语句中动态设置属性，并且删除额外的逗号
+```xml
+<update id="updateAuthorIfNecessary">
+  update Author
+    <set>
+      <if test="username != null">username=#{username},</if>
+      <if test="password != null">password=#{password},</if>
+      <if test="email != null">email=#{email},</if>
+      <if test="bio != null">bio=#{bio}</if>
+    </set>
+  where id=#{id}
+</update>
+```
+与set标签等效的trim标签是
+```xml
+<!-- 
+  其会在首部加入set，并且删除位于末尾的','符号
+ -->
+<trim prefix="SET" suffixOverrides=",">
+  ...
+</trim>
+```
+### foreach
+foreach标签允许在动态sql中遍历集合，通常用于构建in条件。
+```xml
+<select id="selectPostIn" resultType="domain.blog.Post">
+  SELECT *
+  FROM POST P
+  <where>
+    <foreach item="item" index="index" collection="list"
+        open="ID in (" separator="," close=")" nullable="true">
+          #{item}
+    </foreach>
+  </where>
+</select>
+```
+> 可以通过foreach执行便利操作，如果foreach指定的collection为array，那么index对应的时数组下标  
+> 若collection为map类型，那么index对应的是entry中的key，而value对应的是value
