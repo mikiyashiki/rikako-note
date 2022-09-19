@@ -23,6 +23,9 @@
   - rollback rule：
     - 回滚规则（rollback rule）通常用来指定当一个异常被抛出时，是否为该异常执行事务的回滚操作
     - 在@Transactional注解中，可以指定rollbackFor/noRollbackFor、rollbackForClassName/noRollbackForClassName来指定为那些异常类执行回滚操作
+    > 当指定rollbackFor属性为checked异常时（如rollbackFor=FileNotFoundException.class)，此时指定的异常不会覆盖其默认行为（为RuntimeException和Error异常执行回滚操作）。  
+    > 故而指定后其默认会为Error、RuntimeException、FileNotFoundException三类异常执行回滚操作
+
     ```java
     @Transactional(rollbackFor={MyException.class})
     public void myOperation() {
@@ -62,3 +65,7 @@
     - 和PROPAGATION_REQUIRED类似，PROPAGATION_NESTED同样也只有一个物理事务。但是其支持多个savepoint（存档点），该物理事务可以回滚到特定的存档点而非必须回滚整个事务。
     - 由于PROPAGATION_NESTED对存档点的支持，故而在PROPAGATION_NESTED条件下，可以进行部分回滚。内层事务的回滚操作并不会造成外部事务的回滚，内层事务回滚后外层事务仍然能够继续执行和提交。
     > 由于PROPAGATION_NESTED需要JDBC savepoint（存档点）的支持，故而该设置仅仅对JDBC事务资源有效。
+
+  > 当事务被回滚之后，当前事务无法再被提交，故而：  
+  >   若在子事务中已经回滚（子事务传播行为为required），那么父事务的状态已经被回滚，即使父事务捕获子事务抛出的异常，那么在捕获异常之后执行的sql操作也不会被提交到数据库中，父事务状态处于已回滚，无法再次提交  
+  > ***但是，当子事务传播行为为nested时，子事务虽然和父事务共用一个事务，子事务回滚时只会回滚到子事务开启之前的存档点，父事务在捕获子事务抛出异常之后执行的sql语句仍然可以被提交***
