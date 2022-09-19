@@ -937,3 +937,88 @@ foreach标签允许在动态sql中遍历集合，通常用于构建in条件。
 ```
 > 可以通过foreach执行便利操作，如果foreach指定的collection为array，那么index对应的时数组下标  
 > 若collection为map类型，那么index对应的是entry中的key，而value对应的是value
+
+## Java API
+### SqlSession
+SqlSession是Mybatis Java主要的接口，可以通过SqlSession来执行sql语句、获取Mapper实例、管理事务。
+### SqlSessionFactory
+SqlSession实例是通过SqlSessionFactory方法来创建的，SqlSessionFactory对象包含创建SqlSession实例的各种方法。
+### SqlSessionFactoryBuilder
+SqlSessionFactory本身是由SqlSessionFactoryBuilder来创建的，SqlSessionFactoryBuilder可以通过xml配置、注解或java配置代码来创建SqlSessionFactory。
+### SqlSessionFactoryBuilder详解
+SqlSessionFactoryBuilder有多个build方法，调用不同的build方法可以根据不同的资源创建SqlSessionFactory
+```java
+// 接受一个InputStream，该InputStream指向mybatis配置的xml文件
+//  * environment参数是可选的，决定加载哪个环境，如果指定environment不存在，那么会抛出一个错误
+//      如果调用的build方法中没有environment参数，那么会使用默认的environment配置
+//  * properties参数同样是可选的，如果调用的build方法制定了properties参数，那么properties参数中指定
+//      的属性可以在mybatis配置文件中使用，以${propertyName}的形式使用
+SqlSessionFactory build(InputStream inputStream)
+SqlSessionFactory build(InputStream inputStream, String environment)
+SqlSessionFactory build(InputStream inputStream, Properties properties)
+SqlSessionFactory build(InputStream inputStream, String env, Properties props)
+```
+> #### 配置文件中加载properties的优先顺序
+> * 在mybatis config配置文件的properties元素中指定的properties最先被加载
+> * 在properties元素的resouce属性或url属性中指定指定的properties文件中导入的属性其次加载，这次加载的properties属性会覆盖上一步中指定的属性
+> * 向build方法中传入的properties参数会最后被读取，并且覆盖之前所有的同名属性，具有最高的优先级  
+> **故而，properties优先级顺序为“properties参数>url/resource属性指定的properties>properties元素体中指定的属性”**
+
+#### 创建SqlSessionFactory的示例
+```java
+String resource = "org/mybatis/builder/mybatis-config.xml";
+InputStream inputStream = Resources.getResourceAsStream(resource);
+SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
+SqlSessionFactory factory = builder.build(inputStream);
+```
+#### 通过Configuration来创建SqlSessionFactory
+之前在mybatis-config.xml中配置的所有mybatis配置属性都可以在Configuration中通过Java API来进行配置
+```java
+DataSource dataSource = BaseDataTest.createBlogDataSource();
+TransactionFactory transactionFactory = new JdbcTransactionFactory();
+
+Environment environment = new Environment("development", transactionFactory, dataSource);
+
+Configuration configuration = new Configuration(environment);
+configuration.setLazyLoadingEnabled(true);
+configuration.setEnhancementEnabled(true);
+configuration.getTypeAliasRegistry().registerAlias(Blog.class);
+configuration.getTypeAliasRegistry().registerAlias(Post.class);
+configuration.getTypeAliasRegistry().registerAlias(Author.class);
+configuration.addMapper(BoundBlogMapper.class);
+configuration.addMapper(BoundAuthorMapper.class);
+
+SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
+SqlSessionFactory factory = builder.build(configuration);
+```
+### SqlSessionFactory构建SqlSession实例
+SqlSessionFactory同样有多种方法来创建SqlSession实例
+- #### SqlSession openSession()
+默认openSession()无参数的方法会创建具有如下特征的SqlSession
+> 1. 事务作用域将会开启（自动提交关闭）
+> 2. 从当前环境配置的Datasource中获取Connection
+> 3. 事务的隔离级别将会使用驱动或者数据源的默认设置
+> 4. PreparedStatement（预处理语句）并不会被复用，也不会批量更新语句
+
+- #### openSesion()的非空参方法
+```java
+SqlSession openSession(boolean autoCommit)
+SqlSession openSession(Connection connection)
+SqlSession openSession(TransactionIsolationLevel level)
+SqlSession openSession(ExecutorType execType, TransactionIsolationLevel level)
+SqlSession openSession(ExecutorType execType)
+SqlSession openSession(ExecutorType execType, boolean autoCommit)
+SqlSession openSession(ExecutorType execType, Connection connection)
+```
+#### openSession参数
+- autoCommit : boolean类型，为true则开启自动提交功能
+- connection ：Connection类型，如果要使用自己的connection实例，可以将其传递给connection参数
+- level ：TransactionIsolationLevel枚举类型，控制事务的隔离级别，可选的五个隔离级别为（NONE,READ_UNCOMMITTED,READ_COMMITTED,REPEATABLE_READ,SERIALIZABLE)
+- ExecutorType ：执行器类型
+  - ExecutorType.SIMPLE：该类型的执行器为每个语句创建一个新的预处理语句（PreparedStatement）
+  - ExecutorType.REUSE：该类型的执行器会复用预处理语句
+  - ExecutorType.BATCH：该类型的执行器会批量执行所有的更新语句，如果select语句位于多条update语句之间，那么必要时会将多条更新语句分割成不同的batch，以便于理解
+> #### batch（批量处理）
+> batch会将相关的sql语句分组到一个batch文件中，并且一次提交到database server端。
+> - addBatch方法会将单独的sql语句添加到batch中，而executeBatch方法会执行batch中所有被分组到一起的sql语句
+> executeBatch方法会返回一个Integer数组，数组中每一个元素代表每个update语句的update count

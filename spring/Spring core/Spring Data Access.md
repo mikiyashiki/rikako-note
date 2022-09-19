@@ -46,7 +46,7 @@
   - rollbackFor： 默认情况下，@Transactional会针对unchecked异常和Error进行回滚操作
   - transactionManager： 默认情况下，@Transactional注解会使用项目中默认的事务管理器（即bean name为transactionManager的事务管理器）。可以为@Transactional注解指定value属性或是transactionManager属性来指定想要采用的事务管理器的bean name或是qualifier
 - ## Transaction Propagation
-  - ### PROPAGATION_REQUIRED
+  - ### PROPAGATION.REQUIRED
     - 在Spring中，事务的传播行为默认是PROPAGATION_REQUIRED，默认情况下该选项会强制的要求一个物理事务
       - 如果当前作用域中不存在事务，那么会创建一个新的事务
       - 如果当前作用域的外层作用域已经存在事务，那么会加入到当前作用域的事务中去
@@ -54,11 +54,11 @@
     > 如果想要对外层事务进行验证，可以手动将事务管理器的validateExistingTransaction属性设置为true。这样，当加入到一个隔离级别与内层事务完全不同的外层事务中时，该加入操作会被拒绝。在该设置下，如果read-write内层事务想要加入到外层的read-only事务中时，该加入操作也会被拒绝。
     - 在事务传播行为被设置为PROPAGATION_REQUIRED的情况下，会为每个被设置事务的方法创建一个逻辑的事务作用域。各个逻辑事务作用域之间都是相互独立的，在不同逻辑事务作用域之间都可以独立设置事务的rollback-only属性。但是，在PROPAGATION_REQUIRED的情况下，内层事务和外层事务都映射到同一个物理事务，内层事务加入到外层事务中，故而在内层逻辑事务中为物理事务设置rollback-only会切实影响到外层事务的提交。
     - 当事务传播行为被设置为PROPAGATION_REQUIRED时，如果内层事务设置了rollback-only标记，那么会导致外层物理事务的回滚。当外层事务尝试提交并失败回滚后，会抛出一个UnexceptedRollbackException异常，外层事务commit方法的调用者会接受到该UnexceptedRollbackException，代表内层发生了非预期的回滚操作
-  - ### PROPAGATION_NEW
-    - 相对于PROPAGATION_REQUIRED，PROPAGATION_NEW传播行为会一直使用独立的物理事务，而不会尝试区加入外部已经存在的物理事务。
+  - ### PROPAGATION.REQUIRES_NEW
+    - 相对于PROPAGATION_REQUIRED，PROPAGATION.REQUIRES_NEW传播行为会一直使用独立的物理事务，而不会尝试区加入外部已经存在的物理事务。
     - 对于PROPAGATION_NEW,其内层事务和外层事务都可以独立的提交或回滚，内层事务的回滚并不会导致外层事务的回滚。
-    - 将事务传播行为设置为PROPAGATION_NEW时，内层事务可以独立定义自己的隔离级别、timeout值、read-only属性，而不必继承外部事务的这些属性。在PROPAGATION_REQUIRED中，内部事务自定义这些属性将会被忽略，内部事务加入外部事务后会采用外部事务的设置。
-  - ### PROPAGATION_NESTED
+    - 将事务传播行为设置为PROPAGATION.REQUIRES_NEW时，内层事务可以独立定义自己的隔离级别、timeout值、read-only属性，而不必继承外部事务的这些属性。在PROPAGATION_REQUIRED中，内部事务自定义这些属性将会被忽略，内部事务加入外部事务后会采用外部事务的设置。
+  - ### PROPAGATION.NESTED
     - 和PROPAGATION_REQUIRED类似，PROPAGATION_NESTED同样也只有一个物理事务。但是其支持多个savepoint（存档点），该物理事务可以回滚到特定的存档点而非必须回滚整个事务。
     - 由于PROPAGATION_NESTED对存档点的支持，故而在PROPAGATION_NESTED条件下，可以进行部分回滚。内层事务的回滚操作并不会造成外部事务的回滚，内层事务回滚后外层事务仍然能够继续执行和提交。
     > 由于PROPAGATION_NESTED需要JDBC savepoint（存档点）的支持，故而该设置仅仅对JDBC事务资源有效。
