@@ -73,3 +73,42 @@ DECIMAL和NUMERIC用于存储高精度的数值类型，当保存数字的精度
 # 其返回值为true
 select b'011' = 3;
 ```
+## mysql日期和时间类型
+### 日期和时间类型语法
+对于time、datetime、timestamp类型，mysql允许second（秒）具有小数部分，最高精度到小数点后6位（微秒）。
+> ***time、datetime、timestamp定义小数部分格式如下***  
+> ***type_name(fsp)***
+> - type_name为date、datetime、timestamp中的一个
+> - fsp为second的小数部分精度
+```sql
+CREATE TABLE t1 (t TIME(3), dt DATETIME(6), ts TIMESTAMP(0));
+```
+对于fsp，其必须位于0~6的范围内，0代表其没有小数部分。若fsp省略，则默认情况下fsp为0.
+### date
+支持的日期是'1000-01-01'到'9999-12-31'。mysql通过'YYYY-MM-DD'的格式来显示date数据，但是对于date类型的赋值，既可以通过字符串类型也可以通过数字类型。
+### datetime（fsp）
+***datetime***类型是***date***和***time***类型的组合。datetime类型支持的范围是 '1000-01-01 00:00:00.000000'到'9999-12-31 23:59:59.999999'，mysql展示datetime类型值是通过'YYYY-MM-DD hh:mm:ss[.fraction]'格式。同样的，datetime类型的赋值可以通过字符串类型和数字类型。
+### timestamp（fsp）
+时间戳类型。timestamp类型支持的范围是'1970-01-01 00:00:01.000000' UTC 到 '2038-01-19 03:14:07.999999' UTC。timestamp类型的值存储着从('1970-01-01 00:00:00' UTC)其经过的秒数。
+> ***timestamp类型不能表示'1970-01-01 00:00:00'，因为该时间点等于timestamp类型的计时起点，但是timestamp类型中0已经被预留来代表 '0000-00-00 00:00:00'*** 
+
+> ***explicit_defaults_for_timestamp已启用***  
+> 如果 explicit_defaults_for_timestamp 属性已经被启用，那么不会将CURRENT_TIMESTAMP赋值给timestamp字段做默认值，也不会在更新时自动将CURRENT_TIMESTAMP赋值给timestamp字段。并且，任何没有声明为not null的timestamp字段都是可为空的。
+
+> ***explicit_defaults_for_timestamp未启用***
+> 除非被显式指定，否则数据表中的timestamp列都会被赋值为最近修改的datetime。该属性开未开启时，可以通过timestamp字段记录上次update或insert时间。  
+> 可以通过为timestamp字段赋值一个null来将该字段设置为当前时间，除非该字段在定义时通过NULL属性声明该字段可以为空。
+
+> ***自动赋值为当前时间和记录更新时间设置***
+> 可以在定义该timestamp列字段时指定DEFAULT CURRENT_TIMESTAMP和ON UPDATE CURRENT_TIMESTAMP,为该timestamp字段指定默认值和记录最近更新时间。默认情况下，第一个timestamp列字段具有这些属性，数据表中的任何timestamp字段也可以手动指定这些属性。
+
+### time(fsp)
+time类型的范围为'-838:59:59.000000'到'838:59:59.000000'，msyql显示time类型的格式为'hh:mm:ss[.fraction]'，但是对time类型的赋值既可以用字符串类型也可以用数字类型。
+### YEAR(4)
+year类型用来表示年，year类型通过YYYY格式进行展示，为year类型字段赋值既可以通过字符串类型也可以通过数字类型。
+
+> 对于时间类型，avg和sum等聚合函数不起作用。该类聚合函数会将值转化为数字，并在遇到第一个非数字字符时转换失败。如果想要对时间类型使用聚合函数，需要在使用前将时间类型转化为数字单元，并在聚合后将数字单元转化为时间类型，如下：
+> ```sql
+> SELECT SEC_TO_TIME(SUM(TIME_TO_SEC(time_col))) FROM tbl_name;
+> SELECT FROM_DAYS(SUM(TO_DAYS(date_col))) FROM tbl_name;
+> ```
