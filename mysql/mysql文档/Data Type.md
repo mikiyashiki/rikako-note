@@ -112,3 +112,41 @@ year类型用来表示年，year类型通过YYYY格式进行展示，为year类�
 > SELECT SEC_TO_TIME(SUM(TIME_TO_SEC(time_col))) FROM tbl_name;
 > SELECT FROM_DAYS(SUM(TO_DAYS(date_col))) FROM tbl_name;
 > ```
+
+## mysql中timestamp的存储
+在mysql中，timestamp在存储时，会从本地时区转化为UTC时区然后再存储到数据库中，在获取存储的timestamp时会从UTC时区转化为本地时区（该行为在其他类型，如datetime，中则不会发生）。
+### mysql中的时区
+在默认情况下，对于每个Connection，当前时区为mysql server的时区。但是，Connection时区也可以针对每个Connection单独设置（在jdbc:mysql://{server}:{port}/{db_name}?{追加参数}中单独设置）。
+> 由于时区统一转化为UTC后再存储于数据库中，那么在存储了timestamp之后，若再次访问timestamp时时区发生了改变，那么将存储的UTC时区timestamp转化为Connection对应时区时，转化后时区时间和存储时的时区时间并不相同。
+
+## time、datetime和timestamp传入无效值时
+对于无效的time、datetime、timestamp值，会将其转化为该类型默认的‘0’值，例如'0000-00-00'或者'0000-00-00 00:00:00'。
+
+## tmestamp转化为datetime
+可以通过cast()函数和at time zone操作符将timestamp类型转化为datetime类型。
+```sql
+SELECT col,
+         CAST(col AT TIME ZONE INTERVAL '+00:00' AS DATETIME) AS ut
+         FROM ts ORDER BY id;
+```
+
+## mysql中date部分
+- 在mysql中，对于date类型或者timestamp或datetime中的date部分，任何标点符号都可以作为分隔符
+  ```sql
+  '10:11:12' 代表 '2010-11-12'
+  '10:11:12 00:00:00' 代表 '2010-11-12 00:00:00'
+  ```
+- 当date中年份只包含两位数时，若年份为00~69，则会变为2000~2069，若年份为70~99，则年份为1970~1999
+
+## time类型
+mysql中获取和展示time类型的格式为'hh:mm:ss'。time的范围为'-838:59:59' 到 '838:59:59'。
+> ***time范围***  
+> 之所以time的范围会如此之大并且支持负值，是因为time类型不仅可以用来表示一天中的时间点，还可以用来表示两个时间点之间的间隔（间隔可能超过24h，也有可能为负值）
+
+### time类型的缩写
+- 缩写中带有冒号':'时，值将会被解释为一天中的时间点，并且，’11:12'将会被解释为'11:12:00'而不是'00:11:12'
+- 缩写中不带冒号时，将会被解释为两个时间点之间的间隔。并且，最右边的两个数将会被解释为秒，'1112'和1112也会被解释为'00:11:12'
+
+## year类型
+在mysql 8.0.19中，不再支持year(4)这种显式指定宽度的方式已经被废弃，并且，过去支持的year(2)类型在8.0.19中也不再被支持。
+> year类型支持的范围是'1901'到'2155'，也可通过数字类型1901到2155指定
