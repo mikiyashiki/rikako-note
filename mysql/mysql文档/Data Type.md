@@ -214,3 +214,53 @@ select current_timestamp(4);
 '2011-12-31 12:00:00'
 ```
 - 当time类型转化为date时，逻辑和上面一样，但是会舍弃得到datetime结果的time部分，即结果为'2012-01-01'、'2012-01-02'或'2011-12-31'
+
+
+### VARCHAR(M) [CHARACTER SET charset_name] [COLLATE collation_name]
+M代表该列字段最长支持的字符长度（以字符为单位，而不是字节）。M的范围可以为 0到65,535。varchar类型的最长长度受mysql表数据的最大row size限制（row size最大为65,535 bytes，该上限由该行数据的所有字段之间进行共享）。***除了rowsize限制之外，varchar类型的最长长度也受到选用字符集的限制***，如utf8mb3字符集每个字符最多需要3个字节，故而对于utf8mb3字符集最多可以含21,844个字符。***每个字符需要的字节数也会影响该varchar类型含有的字符数M的上限。***
+### BINARY[(M)]
+BINARY类型和CHAR和VARCHAR类型类似，但是BINARY类型存储的是二进制类型，以字节为单位。M代表该列的长度，以二进制字节为单位。***如果M省略，则M默认为1***
+### VARBINARY(M)
+VARBINARY类型和VARCHAR类型类似，但是存储的是以字节为单位的二进制数据。M代表该列字段以字节为单位的最长长度。
+### tinyblob
+tinyblob类型最多可以存储255个字节长度的二进制数据。每个tinyblob类型的数据存储都需要用一个字节的前缀来记录该tinyblob值的长度（以字节为单位）。
+### tinytext [CHARACTER SET charset_name] [COLLATE collation_name]
+text类型的数据，但是最多存储255个字节长度的字符串。如果字符串中包含的字符占用多个字节，那么字符的最大个数小于255.每个tinytext类型值采用一个字节来记录该tinytext类型值的长度（以字节为单位）。
+### blob[(M)]
+一个blob列，最多含有65535(2^16-1)个字节。blob类型会使用两个字节的前缀来记录该blob类型的最大长度（以字节为单位）。
+> 可以为blob类型指定一个M，如果M被指定，那么mysql在创建该列时会使用可以包含M个字节数据的最小的blob类型。
+
+### text[(M)]
+一个text列，最多可以含有65535个字符的数据。如果text类型的值含有多字节字符，那么最大字符数量将小于65535.每个text列都会采用2字节的前缀用来记录该text值长度（以字节为单位）。
+> 可以为text类型指定一个M，如果M被指定，那么mysql在创建该列时会采用可以包含M个***字符***的最小类型的text。
+
+### mediumblob
+一个blob列，最多可以存储16,777,215（2^24-1，约16MB)个字节的二进制数据，该类型会使用3字节的前缀来记录长度。
+### mediumtext [CHARACTER SET charset_name] [COLLATE collation_name]
+一个text列，最多可以存储16,777,215（2^24-1，约16MB)个字符的文数据，如果该text列的值含有多字节字符，那么该列存储字符的最大数量少于该上限。每个mediumtext类型使用3字节的前缀来记录长度。
+### longblob
+一个blob列，最多可以存储4,294,967,295 （2^32-1，约4GB)字节的二进制数据。每个longblob类型都使用4字节前缀来记录该longblob列的长度（以字节为单位）。
+### longtext [CHARACTER SET charset_name] [COLLATE collation_name]
+一个text列，最多可以存储4,294,967,295个字符的文本。如果含有多字节字符，那么存储的最大字符数量会小于该上限。每个longtext类型会使用4字节的前缀来存储该值长度（以字节为单位）。
+### ENUM('value1','value2',...) [CHARACTER SET charset_name] [COLLATE collation_name]
+枚举类型，一个字段可以含有value1，value2，……中的一个值或者null。enum类型在内部是通过整数类型来表示的，value1从1开始，可以通过select enum_col+0的形式来查看整数值。
+> enum类型最多可以含有 65,535 个不同的enum元素。  
+> 对于每个enum元素，其最大支持长度需要满足如下条件：
+> - M&lt;=255
+> - M * w&lt;=1020  
+> 
+> 其中M是字符串文本的字符长度，而w则是该文本字符所属字符集中单个字符所需要的最大字节数
+
+### SET('value1','value2',...) [CHARACTER SET charset_name] [COLLATE collation_name]
+string集合，每个string对象可以0个或多个值，每个值都必须属于value1，value2，……。set类型在内部通过int表示。
+> set类型最多可以含有64个不同的值。
+> 对于每个set元素，其最大支持长度需要满足如下条件：
+> - M&lt;=255
+> - M * w&lt;=1020  
+> 
+> 其中M是字符串文本的字符长度，而w则是该文本字符所属字符集中单个字符所需要的最大字节数
+
+> 对于set类型字段，插入时如果包含set类型中多个值，多个值之间可以通过逗号','分隔  
+> 对于包含多个set元素的值，其值中元素的顺序和出现次数并不重要，'b,b,a,c'和'c,b,b,c,a'在插入后都会变为'a,b,c'
+
+> 可以通过find_in_set('value',set_col)来查询某个值是否在set_col中
