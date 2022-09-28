@@ -181,3 +181,36 @@ CREATE TABLE t1 (
 当explicit_defaults_for_timestamp启用时，只有指定timestamp字段null属性时该字段才能为空。并且，在explicit_defaults_for_timestamp启用时不可以通过赋值字段为null的形式来将timestamp字段设置为当前值。
 > ***当explicit_defaults_for_timestamp开启时，默认条件下timestamp类型声明会自动添加null default null***
 
+### 时间函数返回带小数位的时间
+默认情况下，now()或current_timestamp()函数返回当前的时间戳，如果参数为空，返回结果并不含有小数位。如果想要为now()或者current_timestamp()函数的返回结果指定小数位，可以为函数参数指定一个0~6的整型参数用来限制返回结果时间的小数点位数。
+```sql
+# 返回时间戳带有4位小数
+select current_timestamp(4);
+```
+
+### mysql中时间类型之间的转换
+#### date类型
+- date类型转化为datetime或timestamp类型时，时间类型将会添加'00:00:00'部分
+- date类型转化位time类型时并没有用处，只会转化为'00:00:00'
+#### datetime类型和timestamp类型
+- 当datetime类型或timestamp类型转化为date类型时，会考虑time部分秒的小数部分并且对time部分进行舍入，若time部分为‘23:59:59.499’会舍入到当天，而‘23:59:59.500’则是会舍入到下一天。
+ ```sql
+ '1999-12-31 23:59:59.499' -> '1999-12-31' # 舍入到当天
+ '1999-12-31 23:59:59.500' -> '2000-01-01' # 舍入到下一天
+ ```
+- 当datetime或timestamp类型转化为time类型时，会丢弃date部分
+#### time类型
+- 如果time类型转化为datetime类型或是timestamp类型，current_date()返回的date将会被用作date部分。***并且，time部分会看作时间段，并且附加在current_date()返回的date部分上。如果time类型的值范围位于'00:00:00'和'23:59:59'之外，那么date部分会根据time部分的值向前或向后变化。***
+```sql
+# 若当前current_date()的返回值为'2012-01-01'
+
+# 当time为'12:00:00'时，转化成的datetime为
+'2012-01-01 12:00:00'
+
+# 当time为'24:00:00'时，转化成的datetime为
+'2012-01-02 00:00:00'
+
+# 当time为'-12:00:00'时，转化成的datetime为
+'2011-12-31 12:00:00'
+```
+- 当time类型转化为date时，逻辑和上面一样，但是会舍弃得到datetime结果的time部分，即结果为'2012-01-01'、'2012-01-02'或'2011-12-31'
