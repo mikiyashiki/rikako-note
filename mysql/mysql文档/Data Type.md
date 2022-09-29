@@ -214,3 +214,50 @@ select current_timestamp(4);
 '2011-12-31 12:00:00'
 ```
 - 当time类型转化为date时，逻辑和上面一样，但是会舍弃得到datetime结果的time部分，即结果为'2012-01-01'、'2012-01-02'或'2011-12-31'
+#### 时间类型之间的显式转换
+时间类型之间的显式转换可以覆盖隐式转换。例如，在比较date类型和datetime类型时，默认会将date类型转化为datetime类型之后，再比较两个datetime类型。  
+如果想要再比较date类型和datetime类型时，忽略datetime的time部分，可以手动将datetime类型转化为date类型之后再进行比较。
+```sql
+# 将datetime类型手动通过cast函数转化为date类型之后再进行比较
+date_col = CAST(datetime_col AS DATE)
+```
+#### 将时间类型转化为数值类型
+如果想要将时间类型转化为数值类型，可以使用如下方式：
+```sql
+select datetime_col+0,date_col+0,time_col+0,timestamp_col+0;
+```
+当时间类型转化为数值类型时，如果时间类型没有小数部分（N为0），则会转化为整型类型；如果时间类型含有小数部分，则会转化为decimal类型，decimal类型具有n位小数。
+
+## String Data Type
+mysql中String类型可以分为如下：
+- CHAR
+- VARCHAR
+- BINARY
+- VARBINARY
+- BLOB
+- TEXT
+- ENUM
+- SET
+### mysql中String类型的长度单位
+> 对于字符类型String的列（例如CHAR,VARCHAR,TEXT)，mysql将其长度规格指定为字符单元。    
+> 对于二进制类型的String列（例如BLOB,BINARY,VARBINARY),mysql将长度规格指定为字节单元。
+### 为字符类型String指定字符集和排序规则
+对于字符类型的String字段（CHAR,VARCHAR,TEXT,ENUM,SET)，可以通过CHARACTER SET属性指定该String字段的字符集，并且可以通过COLLATE属性指定该字段的排序规则。
+> 为字符类型String指定character set和collate的规则：
+> 1. 如果charset和collate都被指定，则指定的charset和collate被使用
+> 2. 如果charset被指定而collate未被指定，那么指定的charset和charset默认的collate会被使用
+> 3. 如果collate被指定但是charset未被指定，那么指定的collate和collate关联的charset会被使用
+> 4. 如果charset和collate都没有被指定，那么该字符类型String字段会使用该table表对应的charset和collate
+
+#### BINARY属性
+binary属性是用来指定二进制collate的快捷方式。当使用binary属性来修饰字符类型String字段后，该字段的比较和排序都基于的是字符编码的数值而不是字符排序。
+```sql
+CREATE TABLE t
+(
+  c1 VARCHAR(10) CHARACTER SET latin1 BINARY,
+  c2 TEXT BINARY
+) CHARACTER SET utf8mb4;
+```
+### CHAR[(M)] [CHARACTER SET charset_name] [COLLATE collation_name]
+该String为固定长度为M的字符串，存储时会再字符串的右边一直填充空格字符直到字符串长度为M。M代表
+
