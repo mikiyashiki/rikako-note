@@ -341,3 +341,91 @@ pad space和no pad的区别：
 
 > 如果某字符串列其collate的pad attribute为pad space，且该列拥有unique约束，那么在插入值时，'a'和'a '同时插入会对该列产生duplicate-key错误。
 
+### binary和varbinary类型
+binary,varbinary类型和char,varchar类型相似，不同的是binary、varbinary类型存储二进制形式的字符串。
+> 当插入字符串超过binary或varbinary的最长限制长度时，若***strict mode未启用，则字符串会被截断来适应该二进制列的最大长度，并且会产生一个warning***；若***strcit mode已启用，那么会抛出异常并且插入失败***
+
+#### binary存储值时的逻辑
+当binary类型的值被存储时，该插入的值会右填充（0x00）的值直到到达指定长度。并且，在对binary值进行获取时，***并不会删除尾随（0x00）。***  
+在对binary类型值进行比较时，所有字节都重要，比较时并不会忽略尾随（0x00）字节。
+> 对于binary类型，其和char类型不同，并不删除尾随字符，其意味着如果‘a’同时插入binary(3)的col_3列和binary(6)的col_6列，从col_3和col_6中取出存储的值进行比较时，col_3和col_6取出的值并不相同，col_3为0x610000，col_6为0x610000000000。
+
+#### varbinary存储时的逻辑
+对于varbinary类型，存储时并不会插入尾随字符，获取时也不会删除尾随字符。
+
+### blob类型和text类型
+blob类型可以看作一个存储大量二进制字符串数据的对象，而text类型可以看作一个存储大量字符型字符串的对象。
+> 如果strict mode没有开启，那么在给blob类型字段分配超过其长度限制的值时，会对分配的值进行截断并且抛出一个warning；如果strict mode已经开启，那么当截断非空格字符时会抛出异常并且插入失败。  
+> 对于text类型，如果插入时对插入值的尾随空格进行截断，那么会抛出警告，无论strict mode是否开启。
+
+对于blob类型和text类型，在插入时并不会有向右的填充字符，在获取时也不会删除尾随字符。（类似于varchar和varbinary）。
+
+#### 关于text类型作为索引的比较逻辑
+如果将text类型的列作为索引，必须要指定索引前缀长度，当text值小于索引前缀长度时对索引列的text类型值进行比较时会向右填充空格。即如果该索引需要unique约束，那么两个除了后缀空格数目外完全相同的text值将会产生duplicate-key异常。
+#### blob/text类型与varchar/varbinary类型的区别
+在大多数情况下，blob/text类型和varchar/varbinary都相同，但是在如下方面会有所区别：
+- 在对blob/text类型字段添加索引时，必须要指定索引前缀长度M。(在对单列创建索引时，必须要复制索引列的值到特定的数据结构如B+树中，故而强制要求blob/text类型创建索引时指定索引前缀长度能够有效的减少复制索引值消耗的空间和比较索引的开销)
+  ```sql
+  create table tb_blob_index (
+    blob_col blob,
+    index(blob_col(M))
+  );
+  ```
+- 对于blob类型和text类型的字段并不能为其指定default默认值
+
+#### blob类型和text类型的排序
+由于blob类型和text类型的值可能会很长，故而在对blob类型和text类型的值进行排序时，只会对列开头max_sort_length字节长度的内容进行排序。max_sort_length默认值为1024.
+```sql
+show variables like 'max_sort_length'; # default 1024
+```
+### enum类型
+枚举类型是一个String对象，该对象的值可以从允许的值范围中进行选取。允许的值范围在定义枚举字段时显式指定。
+#### 枚举列的创建
+```sql
+create tb_enum (
+  id bigint auto_increment primary key,
+  size enum('x-small', 'small', 'medium', 'large', 'x-large')
+);
+```
+当在插入枚举时，可以有效降低空间的占用量。对于‘medium’值的插入，一百万条枚举类型值的插入只消耗一百万字节，而将'medium‘类型作为字符串插入时，一百万条数据的插入会消耗六百万字节的空间。
+#### 枚举类型的值和序号
+- mysql中，对于每个枚举类型的值都有一个序号。对于在枚举类型列定义时在括号中指定的枚举类型值，都对应了一个整数序号，序号从1开始（如"small","medium","large"对应1，2，3）。
+- 对枚举空字符串（代表error），其对应的index是0.
+- 对于枚举值NULL，其index也为NULL
+
+如果想要通过数值的形式获取枚举值，可以通过select enum_col+0的形式，获取枚举值时该枚举值对应的index被返回。
+
+#### 枚举类型插入invalid值
+如果对枚举类型插入invalid值（插入值不位于enum定义时的可选值中）：
+- strict mode没有开启时，会插入一个''作为错误值，该''对应的index是0
+- 若strict mode开启，那么插入invalid值会直接导致异常
+
+如果枚举列声明可为null，那么null对于该枚举列则是有效值，该枚举列的默认值为null；如果枚举列声明为not null，那么该枚举列的默认值是index为1对应的枚举值。
+
+#### 枚举值的比较
+枚举值的比较是通过比较枚举值的index来进行的。
+```sql
+create table tb_enum (enum_col enum('b','a'));
+
+# 若enum_col_b对应的枚举值是’b'，enum_col_a对应的枚举值为enum_col_a
+# 那么
+enum_col_b &lt; enum_col_a
+```
+#### 枚举值的定义
+在定义枚举值时，不应该通过表达式来指定枚举值。
+```sql
+# 无法通过concat来指定枚举值为'medium'
+CREATE TABLE sizes (
+    size ENUM('small', CONCAT('med','ium'), 'large')
+);
+
+# 无法将枚举值指定为变量
+SET @mysize = 'medium';
+CREATE TABLE sizes (
+    size ENUM('small', @mysize, 'large')
+);
+```
+
+
+
+
